@@ -41,7 +41,9 @@ import java.util.UUID;
 @EventBusSubscriber(modid = CreateSubmarine.MOD_ID, value = Dist.CLIENT)
 public final class PermanentWaterCullingTest {
 
-    public static final boolean ENABLED = false;
+    public static boolean isEnabled() {
+        return com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.ENABLE_PERMANENT_WATER_CULLING_TEST.get();
+    }
 
     private static final int UPDATE_INTERVAL_TICKS = 40;
     private static final double CAMERA_PROBE_OFFSET = 0.35;
@@ -58,7 +60,7 @@ public final class PermanentWaterCullingTest {
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
-        if (!ENABLED) {
+        if (!isEnabled()) {
             clearAllState();
             return;
         }

@@ -10,6 +10,7 @@ public class SubmarineConfig {
     public static final ModConfigSpec.DoubleValue MAX_DEPTH_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue BALLAST_FORCE_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue WATER_THRUSTER_POWER_MULTIPLIER;
+    public static final ModConfigSpec.BooleanValue ENABLE_PERMANENT_WATER_CULLING_TEST;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -44,6 +45,12 @@ public class SubmarineConfig {
                 .comment("Multiplier on water thruster thrust output.",
                         "Lower = weaker propulsion, higher = stronger.")
                 .defineInRange("waterThrusterPowerMultiplier", 1.0, 0.1, 10.0);
+        builder.pop();
+
+        builder.push("experimental");
+        ENABLE_PERMANENT_WATER_CULLING_TEST = builder
+                .comment("Enable the experimental Permanent Water Culling test for submarines and boats")
+                .define("enablePermanentWaterCullingTest", false);
         builder.pop();
 
         SPEC = builder.build();

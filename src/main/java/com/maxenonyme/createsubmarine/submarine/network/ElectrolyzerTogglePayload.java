@@ -27,12 +27,10 @@ public record ElectrolyzerTogglePayload(BlockPos pos) implements CustomPacketPay
             var player = context.player();
             if (player == null) return;
             BlockPos pos = payload.pos();
-            double dx = (pos.getX() + 0.5) - player.getX();
-            double dy = (pos.getY() + 0.5) - player.getY();
-            double dz = (pos.getZ() + 0.5) - player.getZ();
-            if (dx * dx + dy * dy + dz * dz > 64.0) return;
-            if (player.level().getBlockEntity(pos) instanceof ElectrolyzerBlockEntity be) {
-                be.toggleEnabled();
+            if (player.containerMenu instanceof com.maxenonyme.createsubmarine.submarine.gui.ElectrolyzerMenu menu && menu.pos.equals(payload.pos())) {
+                if (player.level().getBlockEntity(payload.pos()) instanceof ElectrolyzerBlockEntity be) {
+                    be.toggleEnabled();
+                }
             }
         });
     }
