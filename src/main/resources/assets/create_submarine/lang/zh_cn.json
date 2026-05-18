@@ -1,0 +1,56 @@
+{
+  "itemGroup.create_submarine": "机械动力：潜艇",
+  "fluid.create_submarine.oxygen": "氧气",
+
+  "block.create_submarine.creative_oxygenator": "创造制氧机",
+  "item.create_submarine.creative_oxygenator.tooltip.summary": "当潜艇气密时\n移除舱内积水。",
+  "item.create_submarine.creative_oxygenator.tooltip.behaviour1": "自动管理氧气\n和排水。",
+
+  "block.create_submarine.ballast_tank": "潜艇压载水罐",
+  "item.create_submarine.ballast_tank.tooltip.summary_part1": "使潜艇能够浮起，\n可通过",
+  "item.create_submarine.ballast_tank.tooltip.summary_part2": "注入水。",
+  "item.create_submarine.ballast_tank.tooltip.goggles": "佩戴工程师护目镜时\n可以查看容量。",
+
+  "block.create_submarine.ballast_vent": "压载排口",
+  "block.create_submarine.oxygene_diffuser": "氧气扩散器",
+  "block.create_submarine.electrolyzer": "电解器",
+  "block.create_submarine.pollution_debug": "污染调试方块",
+  "block.create_submarine.polluted_air": "污染空气",
+
+  "create_submarine.simulated_section.submarine": "潜艇",
+  "create_submarine.gui.goggles.ballast_status": "压载水罐状态",
+  "create_submarine.gui.goggles.water": "水",
+  "create_submarine.gui.goggles.air": "空气",
+  "create_submarine.gui.goggles.connected_tanks": "已连接水罐",
+
+  "create_submarine.tooltip.holdForInfo": "按住 %s 查看概要",
+  "create_submarine.tooltip.keyShift": "Shift",
+
+  "create_submarine.ponder.ballast_vent.header": "压载排口用法",
+  "create_submarine.ponder.ballast_vent.text_1": "排口需要旋转力才能工作。",
+  "create_submarine.ponder.ballast_vent.text_2": "它必须通过管道连接到压载水罐。",
+  "create_submarine.ponder.ballast_vent.text_3": "接入动力并连接完成后，它会管理压载压力。",
+  "create_submarine.ponder.ballast_vent.text_4": "排口必须至少有一个面接触海水。",
+  "create_submarine.ponder.ballast_vent.text_5": "反转旋转方向可切换为排水模式，将水排出！",
+
+  "block.create_submarine.industrial_alarm": "工业警报器",
+
+  "create_submarine.ponder.diffusoroxygene.header": "氧气扩散器用法",
+  "create_submarine.ponder.diffusoroxygene.text_1": "氧气扩散器需要电解器生成的氧气。",
+  "create_submarine.ponder.diffusoroxygene.text_2": "它会根据潜艇大小按比例消耗氧气。",
+  "create_submarine.ponder.diffusoroxygene.text_3": "提供红石信号以激活氧气扩散器。",
+
+  "create_submarine.ponder.electrolyzer.header": "电解器用法",
+  "create_submarine.ponder.electrolyzer.text_1": "电解器需要水来生产氧气。",
+  "create_submarine.ponder.electrolyzer.text_2": "它需要 Forge 能量（FE）供能。",
+  "create_submarine.ponder.electrolyzer.text_3": "水会被转化为氧气，并输送到你的潜艇中！",
+
+  "block.create_submarine.water_thruster": "喷水推进器",
+  "create_submarine.ponder.water_thruster.header": "喷水推进器推进",
+  "create_submarine.ponder.water_thruster.text_1": "喷水推进器使用加压水流产生推力。",
+  "create_submarine.ponder.water_thruster.text_2": "将它连接到水源并提供动能即可激活。",
+  "create_submarine.ponder.water_thruster.text_3": "压力越高、转速越快，推进速度就越快！",
+  "create_submarine.ponder.water_thruster.text_4": "这个水罐会为推进提供所需的水。",
+
+  "block.create_submarine.glass_pressurizer": "玻璃加压器"
+}

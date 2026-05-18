@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "minecraft:copper_block"
+    },
+    "n": {
+      "item": "create:copper_nugget"
+    }
+  },
+  "pattern": [
+    "nCn",
+    "CnC",
+    "nCn"
+  ],
+  "result": {
+    "count": 1,
+    "id": "create_submarine:ballast_vent"
+  }
+}

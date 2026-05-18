@@ -1,0 +1,98 @@
+package com.maxenonyme.createsubmarine.submarine.client;
+
+import com.maxenonyme.createsubmarine.submarine.client.renderer.SubmarineWaterCullBuffer;
+import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.ViewportEvent;
+
+import java.util.UUID;
+
+public class SubmarineFogHandler {
+
+    private static final double PROBE_OFFSET = 0.35;
+
+    private static boolean cachedShouldFog = false;
+
+    @SubscribeEvent
+    public static void onClientTick(ClientTickEvent.Post event) {
+        Minecraft mc = Minecraft.getInstance();
+        LocalPlayer player = mc.player;
+        if (mc.level == null || player == null) {
+            cachedShouldFog = false;
+            return;
+        }
+        SubmarineWaterCullBuffer.syncSubmarinePoses();
+        cachedShouldFog = computeShouldFog(mc.level, player.getEyePosition());
+    }
+
+    @SubscribeEvent
+    public static void onRenderFog(ViewportEvent.RenderFog event) {
+        if (!cachedShouldFog) return;
+        event.setNearPlaneDistance(2.0f);
+        event.setFarPlaneDistance(40.0f);
+        event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public static void onComputeFogColor(ViewportEvent.ComputeFogColor event) {
+        if (!cachedShouldFog) return;
+        event.setRed(0.02f);
+        event.setGreen(0.05f);
+        event.setBlue(0.2f);
+    }
+
+    private static boolean computeShouldFog(Level level, Vec3 probePos) {
+        if (findSubmarineContainingPos(level, probePos) == null) return false;
+        return hasWaterAboveOrAt(level, probePos);
+    }
+
+    private static UUID findSubmarineContainingPos(Level level, Vec3 probePos) {
+        for (double dx = -PROBE_OFFSET; dx <= PROBE_OFFSET; dx += PROBE_OFFSET) {
+            for (double dy = -PROBE_OFFSET; dy <= PROBE_OFFSET; dy += PROBE_OFFSET) {
+                for (double dz = -PROBE_OFFSET; dz <= PROBE_OFFSET; dz += PROBE_OFFSET) {
+                    BlockPos p = BlockPos.containing(probePos.x + dx, probePos.y + dy, probePos.z + dz);
+                    UUID id = CompartmentTracker.findSealedSublevel(level, p);
+                    if (id != null) return id;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean hasWaterAboveOrAt(Level level, Vec3 probePos) {
+        int x = (int) Math.floor(probePos.x);
+        int z = (int) Math.floor(probePos.z);
+        int startY = (int) Math.floor(probePos.y);
+        int endY = level.getMaxBuildHeight();
+        for (int y = startY; y <= endY; y++) {
+            if (isWaterAt(level, x, y, z)) return true;
+        }
+        return false;
+    }
+
+    private static boolean isWaterAt(Level level, int x, int y, int z) {
+        try {
+            LevelChunk chunk = level.getChunkSource().getChunkNow(x >> 4, z >> 4);
+            if (chunk == null) return false;
+            int sectionIndex = chunk.getSectionIndex(y);
+            LevelChunkSection[] sections = chunk.getSections();
+            if (sectionIndex < 0 || sectionIndex >= sections.length) return false;
+            LevelChunkSection section = sections[sectionIndex];
+            if (section == null || section.hasOnlyAir()) return false;
+            BlockState state = section.getBlockState(x & 15, y & 15, z & 15);
+            return state.getFluidState().is(FluidTags.WATER);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+}

@@ -1,0 +1,11 @@
+{
+  "priority": 3000,
+  "title": {
+    "text": { "translate": "create_submarine.simulated_section.submarine" },
+    "background": "#aa00203c",
+    "color": "#ff88ccff",
+    "secondary_color": "#ff4488bb"
+  },
+  "sprite": "create_submarine:banner",
+  "only_animate_on_hover": true
+}

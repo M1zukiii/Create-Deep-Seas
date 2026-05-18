@@ -1,0 +1,29 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.maxenonyme.createsubmarine.submarine.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "LevelChunkMixin",
+    "LevelMixin",
+    "compat.SablePhysicsCrashFixMixin"
+  ],
+  "client": [
+    "FluidRenderHelperBuilderMixin",
+    "FluidRenderHelperMixin",
+    "LevelRendererMixin",
+    "WaterOcclusionRendererMixin",
+    "compat.AeronauticsVeilCrashFixMixin",
+    "compat.AeronauticsShaderCrashFixMixin",
+    "compat.AeronauticsRenderTypeCrashFixMixin",
+    "compat.WaterOcclusionRendererAccessor",
+    "compat.SodiumShaderLoaderMixin",
+    "compat.SodiumChunkRendererMixin",
+    "compat.SodiumFluidRendererMixin",
+    "compat.SodiumBlockRendererMixin",
+    "compat.sable.VanillaSubLevelRenderDispatcherMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

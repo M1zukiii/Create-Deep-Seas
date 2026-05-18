@@ -1,0 +1,309 @@
+package com.maxenonyme.createsubmarine.submarine.compartment;
+
+import com.maxenonyme.createsubmarine.CreateSubmarine;
+import com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry;
+import dev.ryanhcode.sable.companion.SubLevelAccess;
+import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
+import dev.ryanhcode.sable.companion.math.Pose3dc;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.phys.AABB;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Quaterniondc;
+import org.joml.Vector3d;
+import org.joml.Vector3dc;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class CompartmentTracker {
+    private static final Map<UUID, Set<BlockPos>> SEALED_UNION = new ConcurrentHashMap<>();
+    private static final Map<UUID, Set<BlockPos>> VISUAL_UNION = new ConcurrentHashMap<>();
+    private static final Map<UUID, List<CompartmentDetector.Component>> COMPARTMENTS = new ConcurrentHashMap<>();
+    private static final Map<UUID, SubLevelAccess> SUBS = new ConcurrentHashMap<>();
+    private static final Map<UUID, AABB> WORLD_AABB = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> LAST_UPDATE_TICK = new ConcurrentHashMap<>();
+    private static final Map<UUID, Set<BlockPos>> COMPROMISED_ANCHORS = new ConcurrentHashMap<>();
+    private static final Map<UUID, org.joml.Vector3d> CACHED_DIMENSIONS = new ConcurrentHashMap<>();
+    private static final Map<UUID, double[]> LAST_POSE = new ConcurrentHashMap<>();
+    private static final Map<UUID, CompartmentDetector.IncrementalScanState> ACTIVE_SCANS = new ConcurrentHashMap<>();
+    private static final Map<UUID, Set<BlockPos>> SOLID_BLOCKS = new ConcurrentHashMap<>();
+    private static volatile AABB globalBounds = null;
+
+    public static void update(UUID id, SubLevelAccess sub, CompartmentDetector.Result result, long gameTick) {
+        COMPARTMENTS.put(id, result.components());
+        if (result.solidBlocks() != null) {
+            SOLID_BLOCKS.put(id, result.solidBlocks());
+        }
+        SUBS.put(id, sub);
+        LAST_UPDATE_TICK.put(id, gameTick);
+        rebuildUnionsAndPush(id, result.components());
+
+        if (sub instanceof dev.ryanhcode.sable.sublevel.SubLevel sl && sl.getPlot() != null) {
+            dev.ryanhcode.sable.companion.math.BoundingBox3ic bounds = sl.getPlot().getBoundingBox();
+            double sx = bounds.maxX() - bounds.minX() + 1;
+            double sy = bounds.maxY() - bounds.minY() + 1;
+            double sz = bounds.maxZ() - bounds.minZ() + 1;
+            double r = Math.max(sx, Math.max(sy, sz)) * 0.75;
+            Vector3dc p = sub.logicalPose().position();
+            WORLD_AABB.put(id, new AABB(p.x() - r, p.y() - r, p.z() - r, p.x() + r, p.y() + r, p.z() + r));
+        }
+        rebuildGlobalBounds();
+    }
+
+    private static Set<BlockPos> rebuildUnionsAndPush(UUID id, List<CompartmentDetector.Component> comps) {
+        Set<BlockPos> compromised = COMPROMISED_ANCHORS.getOrDefault(id, Set.of());
+        Set<BlockPos> sealed = new HashSet<>();
+        Set<BlockPos> visual = new HashSet<>();
+        
+        Set<BlockPos> solid = SOLID_BLOCKS.get(id);
+        if (solid != null) {
+            visual.addAll(solid);
+        }
+
+        for (CompartmentDetector.Component c : comps) {
+            if (!c.sealed() || compromised.contains(c.anchor())) continue;
+            sealed.addAll(c.internal());
+            visual.addAll(c.internal());
+            visual.addAll(c.hull());
+        }
+        SEALED_UNION.put(id, Collections.unmodifiableSet(sealed));
+        VISUAL_UNION.put(id, Collections.unmodifiableSet(visual));
+        if (net.neoforged.fml.loading.FMLEnvironment.dist == net.neoforged.api.distmarker.Dist.CLIENT) {
+            com.maxenonyme.createsubmarine.submarine.client.renderer.SubmarineWaterCullBuffer.updateSubmarineOcclusion(id, visual);
+        }
+        return visual;
+    }
+
+    public static void remove(UUID id) {
+        if (net.neoforged.fml.loading.FMLEnvironment.dist == net.neoforged.api.distmarker.Dist.CLIENT) {
+            com.maxenonyme.createsubmarine.submarine.client.renderer.SubmarineWaterCullBuffer.updateSubmarineOcclusion(id, null);
+            com.maxenonyme.createsubmarine.submarine.client.renderer.SubmarineWaterCullBuffer.clearSodiumPoseCache(id);
+        }
+        SEALED_UNION.remove(id);
+        VISUAL_UNION.remove(id);
+        COMPARTMENTS.remove(id);
+        SUBS.remove(id);
+        WORLD_AABB.remove(id);
+        LAST_UPDATE_TICK.remove(id);
+        COMPROMISED_ANCHORS.remove(id);
+        CACHED_DIMENSIONS.remove(id);
+        LAST_POSE.remove(id);
+        ACTIVE_SCANS.remove(id);
+        SOLID_BLOCKS.remove(id);
+        rebuildGlobalBounds();
+    }
+
+    public static void clearAll() {
+        SEALED_UNION.clear();
+        VISUAL_UNION.clear();
+        COMPARTMENTS.clear();
+        SUBS.clear();
+        WORLD_AABB.clear();
+        LAST_UPDATE_TICK.clear();
+        COMPROMISED_ANCHORS.clear();
+        CACHED_DIMENSIONS.clear();
+        LAST_POSE.clear();
+        ACTIVE_SCANS.clear();
+        SOLID_BLOCKS.clear();
+        globalBounds = null;
+    }
+
+    public static Map<UUID, SubLevelAccess> getSubsSnapshot() {
+        return new java.util.HashMap<>(SUBS);
+    }
+
+    public static AABB getWorldAABB(UUID id) {
+        return WORLD_AABB.get(id);
+    }
+
+    public static void setWorldAABB(UUID id, AABB aabb) {
+        WORLD_AABB.put(id, aabb);
+        rebuildGlobalBounds();
+    }
+
+    public static Vector3d getCachedDimensions(UUID id) {
+        return CACHED_DIMENSIONS.get(id);
+    }
+
+    public static long lastUpdateTick(UUID id) {
+        return LAST_UPDATE_TICK.getOrDefault(id, 0L);
+    }
+
+    public static void updateAABB(UUID id, org.joml.Vector3dc position, org.joml.Vector3dc dimensions) {
+        double r = Math.max(dimensions.x(), Math.max(dimensions.y(), dimensions.z())) * 0.75;
+        WORLD_AABB.put(id, new AABB(position.x() - r, position.y() - r, position.z() - r,
+                position.x() + r, position.y() + r, position.z() + r));
+        rebuildGlobalBounds();
+    }
+
+    public static Vector3d getOrComputeDimensions(UUID id, BoundingBox3ic bounds) {
+        int sx = bounds.maxX() - bounds.minX() + 1;
+        int sy = bounds.maxY() - bounds.minY() + 1;
+        int sz = bounds.maxZ() - bounds.minZ() + 1;
+        return CACHED_DIMENSIONS.compute(id, (k, cached) -> {
+            if (cached != null && cached.x == sx && cached.y == sy && cached.z == sz) return cached;
+            return new Vector3d(sx, sy, sz);
+        });
+    }
+
+    public static boolean poseMovedEnough(UUID id, Pose3dc pose, double posEps, double rotEps) {
+        double[] last = LAST_POSE.get(id);
+        if (last == null)
+            return true;
+        Vector3dc p = pose.position();
+        Quaterniondc q = pose.orientation();
+        double dx = p.x() - last[0], dy = p.y() - last[1], dz = p.z() - last[2];
+        if (dx * dx + dy * dy + dz * dz > posEps * posEps)
+            return true;
+        double dot = q.x() * last[3] + q.y() * last[4] + q.z() * last[5] + q.w() * last[6];
+        return Math.abs(dot) < 1.0 - rotEps;
+    }
+
+    public static void recordPose(UUID id, Pose3dc pose) {
+        Vector3dc p = pose.position();
+        Quaterniondc q = pose.orientation();
+        LAST_POSE.put(id, new double[] { p.x(), p.y(), p.z(), q.x(), q.y(), q.z(), q.w() });
+    }
+
+    public static boolean isScanActive(UUID id) {
+        return ACTIVE_SCANS.containsKey(id);
+    }
+
+    public static void beginScanIfIdle(UUID id, SubLevelAccess sub) {
+        ACTIVE_SCANS.computeIfAbsent(id, k -> CompartmentDetector.beginScan(sub));
+    }
+
+    public static boolean stepScan(UUID id, SubLevelAccess sub, int budget, long gameTick) {
+        CompartmentDetector.IncrementalScanState st = ACTIVE_SCANS.get(id);
+        if (st == null)
+            return false;
+        try {
+            boolean done = CompartmentDetector.stepScan(st, budget);
+            if (done) {
+                CompartmentDetector.Result r = CompartmentDetector.finishScan(st);
+                update(id, sub, r, gameTick);
+                ACTIVE_SCANS.remove(id);
+                return true;
+            }
+            return false;
+        } catch (Throwable t) {
+            ACTIVE_SCANS.remove(id);
+            LAST_UPDATE_TICK.put(id, gameTick);
+            return false;
+        }
+    }
+
+    public static void abortScan(UUID id) {
+        ACTIVE_SCANS.remove(id);
+    }
+
+    public static boolean isOccluded(Level level, BlockPos worldPos) {
+        return findContainingSub(worldPos, VISUAL_UNION) != null;
+    }
+
+    public static boolean isInSealed(Level level, BlockPos worldPos) {
+        return findSealedSublevel(level, worldPos) != null;
+    }
+
+    @Nullable
+    public static UUID findSealedSublevel(Level level, BlockPos worldPos) {
+        return findContainingSub(worldPos, SEALED_UNION);
+    }
+
+    @Nullable
+    private static UUID findContainingSub(BlockPos worldPos, Map<UUID, Set<BlockPos>> blockSetPerSub) {
+        AABB gb = globalBounds;
+        if (gb == null) return null;
+        double cx = worldPos.getX() + 0.5, cy = worldPos.getY() + 0.5, cz = worldPos.getZ() + 0.5;
+        if (!gb.contains(cx, cy, cz)) return null;
+
+        for (Map.Entry<UUID, SubLevelAccess> e : SUBS.entrySet()) {
+            UUID id = e.getKey();
+            AABB aabb = WORLD_AABB.get(id);
+            if (aabb == null || !aabb.contains(cx, cy, cz)) continue;
+            Set<BlockPos> blocks = blockSetPerSub.get(id);
+            if (blocks == null || blocks.isEmpty()) continue;
+
+            Vector3d local = new Vector3d(cx, cy, cz);
+            try {
+                e.getValue().logicalPose().transformPositionInverse(local);
+            } catch (Exception ex) {
+                continue;
+            }
+            if (blocks.contains(BlockPos.containing(local.x, local.y, local.z))) return id;
+        }
+        return null;
+    }
+
+    @Nullable
+    public static BlockState getLiedBlockState(Level level, BlockPos worldPos) {
+        UUID id = findSealedSublevel(level, worldPos);
+        if (id == null)
+            return null;
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    @Nullable
+    public static FluidState getLiedFluidState(Level level, BlockPos worldPos) {
+        return isOccluded(level, worldPos) ? Fluids.EMPTY.defaultFluidState() : null;
+    }
+
+    @Nullable
+    public static CompartmentDetector.Component findCompartmentAdjacent(UUID id, BlockPos plotPos) {
+        List<CompartmentDetector.Component> comps = COMPARTMENTS.get(id);
+        if (comps == null)
+            return null;
+        Set<BlockPos> compromised = COMPROMISED_ANCHORS.getOrDefault(id, Set.of());
+        for (CompartmentDetector.Component c : comps) {
+            if (!c.sealed() || compromised.contains(c.anchor()))
+                continue;
+            for (Direction dir : Direction.values()) {
+                if (c.internal().contains(plotPos.relative(dir)))
+                    return c;
+            }
+        }
+        return null;
+    }
+
+    public static List<CompartmentDetector.Component> getCompartments(UUID id) {
+        return COMPARTMENTS.getOrDefault(id, List.of());
+    }
+
+    public static boolean isCompromised(UUID id, BlockPos anchor) {
+        return COMPROMISED_ANCHORS.getOrDefault(id, Set.of()).contains(anchor);
+    }
+
+    public static void markCompromised(UUID id, BlockPos anchor) {
+        COMPROMISED_ANCHORS.computeIfAbsent(id, k -> ConcurrentHashMap.newKeySet()).add(anchor);
+        List<CompartmentDetector.Component> comps = COMPARTMENTS.get(id);
+        if (comps == null) return;
+        rebuildUnionsAndPush(id, comps);
+    }
+
+    public static boolean hasAnySealed(UUID id) {
+        Set<BlockPos> sealed = SEALED_UNION.get(id);
+        return sealed != null && !sealed.isEmpty();
+    }
+
+    private static void rebuildGlobalBounds() {
+        if (WORLD_AABB.isEmpty()) {
+            globalBounds = null;
+            return;
+        }
+        AABB b = null;
+        for (AABB aabb : WORLD_AABB.values()) {
+            b = (b == null) ? aabb : b.minmax(aabb);
+        }
+        globalBounds = b;
+    }
+}

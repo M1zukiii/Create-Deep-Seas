@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "create_submarine:block/creative_oxygenator" }
+  }
+}

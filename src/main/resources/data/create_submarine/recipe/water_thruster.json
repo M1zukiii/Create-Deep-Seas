@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "P": {
+      "item": "create:mechanical_pump"
+    },
+    "C": {
+      "item": "minecraft:copper_block"
+    },
+    "W": {
+      "item": "create:propeller"
+    }
+  },
+  "pattern": [
+    " P ",
+    "CWC",
+    "CCC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "create_submarine:water_thruster"
+  }
+}

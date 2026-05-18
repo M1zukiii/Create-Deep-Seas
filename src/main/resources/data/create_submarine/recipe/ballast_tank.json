@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "item": "create:andesite_alloy"
+    },
+    "I": {
+      "item": "create:iron_sheet"
+    },
+    "T": {
+      "item": "create:fluid_tank"
+    }
+  },
+  "pattern": [
+    "AIA",
+    "ITI",
+    "AIA"
+  ],
+  "result": {
+    "count": 1,
+    "id": "create_submarine:ballast_tank"
+  }
+}

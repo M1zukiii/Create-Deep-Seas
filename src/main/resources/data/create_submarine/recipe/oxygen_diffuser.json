@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "P": {
+      "item": "create:propeller"
+    },
+    "N": {
+      "item": "create:nozzle"
+    },
+    "L": {
+      "item": "create:redstone_link"
+    },
+    "D": {
+      "item": "create:item_drain"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    }
+  },
+  "pattern": [
+    " P ",
+    "LNL",
+    "EDE"
+  ],
+  "result": {
+    "count": 1,
+    "id": "create_submarine:oxygene_diffuser"
+  }
+}

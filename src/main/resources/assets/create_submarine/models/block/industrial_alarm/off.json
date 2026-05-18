@@ -1,0 +1,9 @@
+{
+  "render_type": "minecraft:cutout",
+  "parent": "create_submarine:block/industrial_alarm/base",
+  "textures": {
+    "cage": "create_submarine:block/industrial_alarm/iron_lamp",
+    "lamp": "create_submarine:block/industrial_alarm/light_redstone_off",
+    "particle": "create_submarine:block/industrial_alarm/iron_lamp"
+  }
+}

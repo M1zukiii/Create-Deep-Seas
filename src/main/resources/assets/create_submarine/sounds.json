@@ -1,0 +1,10 @@
+{
+    "implosion": {
+        "sounds": [
+            {
+                "name": "create_submarine:implosion",
+                "stream": false
+            }
+        ]
+    }
+}

@@ -1,0 +1,33 @@
+{
+  "variants": {
+    "facing=down,lit=false,waterlogged=false": { "model": "create_submarine:block/industrial_alarm/off", "x": 180 },
+    "facing=down,lit=false,waterlogged=true": { "model": "create_submarine:block/industrial_alarm/off", "x": 180 },
+    "facing=down,lit=true,waterlogged=false": { "model": "create_submarine:block/industrial_alarm/on", "x": 180 },
+    "facing=down,lit=true,waterlogged=true": { "model": "create_submarine:block/industrial_alarm/on", "x": 180 },
+
+    "facing=east,lit=false,waterlogged=false": { "model": "create_submarine:block/industrial_alarm/off", "x": 90, "y": 90 },
+    "facing=east,lit=false,waterlogged=true": { "model": "create_submarine:block/industrial_alarm/off", "x": 90, "y": 90 },
+    "facing=east,lit=true,waterlogged=false": { "model": "create_submarine:block/industrial_alarm/on", "x": 90, "y": 90 },
+    "facing=east,lit=true,waterlogged=true": { "model": "create_submarine:block/industrial_alarm/on", "x": 90, "y": 90 },
+
+    "facing=north,lit=false,waterlogged=false": { "model": "create_submarine:block/industrial_alarm/off", "x": 90 },
+    "facing=north,lit=false,waterlogged=true": { "model": "create_submarine:block/industrial_alarm/off", "x": 90 },
+    "facing=north,lit=true,waterlogged=false": { "model": "create_submarine:block/industrial_alarm/on", "x": 90 },
+    "facing=north,lit=true,waterlogged=true": { "model": "create_submarine:block/industrial_alarm/on", "x": 90 },
+
+    "facing=south,lit=false,waterlogged=false": { "model": "create_submarine:block/industrial_alarm/off", "x": 90, "y": 180 },
+    "facing=south,lit=false,waterlogged=true": { "model": "create_submarine:block/industrial_alarm/off", "x": 90, "y": 180 },
+    "facing=south,lit=true,waterlogged=false": { "model": "create_submarine:block/industrial_alarm/on", "x": 90, "y": 180 },
+    "facing=south,lit=true,waterlogged=true": { "model": "create_submarine:block/industrial_alarm/on", "x": 90, "y": 180 },
+
+    "facing=up,lit=false,waterlogged=false": { "model": "create_submarine:block/industrial_alarm/off" },
+    "facing=up,lit=false,waterlogged=true": { "model": "create_submarine:block/industrial_alarm/off" },
+    "facing=up,lit=true,waterlogged=false": { "model": "create_submarine:block/industrial_alarm/on" },
+    "facing=up,lit=true,waterlogged=true": { "model": "create_submarine:block/industrial_alarm/on" },
+
+    "facing=west,lit=false,waterlogged=false": { "model": "create_submarine:block/industrial_alarm/off", "x": 90, "y": 270 },
+    "facing=west,lit=false,waterlogged=true": { "model": "create_submarine:block/industrial_alarm/off", "x": 90, "y": 270 },
+    "facing=west,lit=true,waterlogged=false": { "model": "create_submarine:block/industrial_alarm/on", "x": 90, "y": 270 },
+    "facing=west,lit=true,waterlogged=true": { "model": "create_submarine:block/industrial_alarm/on", "x": 90, "y": 270 }
+  }
+}
