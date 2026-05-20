@@ -55,7 +55,7 @@ jobs:
       - name: Publish to CurseForge
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
-        run: ./gradlew publishNeoForgePublicationToCurseForge
+        run: ./gradlew publishCurseForgePublicationToCurseForge
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
