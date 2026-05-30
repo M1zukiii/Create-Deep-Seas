@@ -41,6 +41,9 @@ public final class CreateSubmarineClient {
 
         modEventBus.addListener(WatermarkOverlay::register);
 
+        NeoForge.EVENT_BUS.addListener(
+                com.maxenonyme.createsubmarine.submarine.client.DeepSeasWelcomeScreen::onScreenOpening);
+
         NeoForge.EVENT_BUS.register(SubmarineFogHandler.class);
         NeoForge.EVENT_BUS.register(SubLevelCrackRenderer.class);
         NeoForge.EVENT_BUS.register(PDAManager.GameEvents.class);

@@ -77,7 +77,13 @@
   "create_submarine.configuration.enablePermanentWaterCullingTest": "Test d'Occlusion d'Eau",
   "create_submarine.configuration.enablePermanentWaterCullingTest.tooltip": "Active le test expérimental d'occlusion d'eau permanente pour les sous-marins et les bateaux.",
   "create_submarine.configuration.enableDeeperOceans": "Océans plus profonds",
-  "create_submarine.configuration.enableDeeperOceans.tooltip": "Approfondit le fond océanique d'environ 10 blocs. Désactivé = profondeur océanique vanilla.",
+  "create_submarine.configuration.enableDeeperOceans.tooltip": "Approfondit le fond océanique sous le niveau vanilla. Désactivé = profondeur vanilla. Règle la valeur avec Profondeur des océans.",
+  "create_submarine.configuration.deeperOceansDepth": "Profondeur des océans",
+  "create_submarine.configuration.deeperOceansDepth.tooltip": "De combien de blocs approfondir le fond océanique quand Océans plus profonds est activé. ATTENTION : de grandes valeurs génèrent et affichent beaucoup plus de terrain et peuvent gravement nuire aux performances. À augmenter prudemment. Défaut 10.",
+  "create_submarine.welcome.title": "Bienvenue dans Create Deep Seas",
+  "create_submarine.welcome.message": "Il est fortement conseillé de configurer vos préférences Deep Seas avant de plonger — solidité des coques, propulsion, profondeur des océans et plus encore se règlent à votre goût.",
+  "create_submarine.welcome.configure": "Configurer le mod",
+  "create_submarine.welcome.dismiss": "Plus tard",
   "item.create_submarine.phycological_membrane": "Membrane Phycologique",
   "item.create_submarine.phycological_membrane.tooltip.summary": "Peut être remplie d'air."
 }

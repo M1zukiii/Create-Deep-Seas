@@ -187,6 +187,19 @@ public final class SubmarineLianaCommand {
         }
     }
 
+    private static void removeSubLevels(ServerSubLevelContainer container, List<ServerSubLevel> subLevels) {
+        try {
+            Class<?> reasonCls = Class.forName("dev.ryanhcode.sable.api.sublevel.SubLevelRemovalReason");
+            java.lang.reflect.Method method = ServerSubLevelContainer.class.getMethod("removeSubLevel", dev.ryanhcode.sable.sublevel.SubLevel.class, reasonCls);
+            Object reason = reasonCls.getEnumConstants()[0];
+            for (ServerSubLevel sub : subLevels) {
+                try {
+                    method.invoke(container, sub, reason);
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
+    }
+
     private static List<ServerSubLevel> spawnLianaChain(ServerLevel level, ServerSubLevelContainer container, BlockPos basePos, int length) {
         if (level.getBlockState(basePos.above(1)).is(LianaRegistry.LIANA_BLOCK.get())) {
             return null;
@@ -194,10 +207,33 @@ public final class SubmarineLianaCommand {
         int numSegments = (length + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
         ServerSubLevel[] segments = new ServerSubLevel[numSegments];
         UUID[] segmentIds = new UUID[numSegments];
+        int[] seedPlotXForSeg = new int[numSegments];
+        int[] seedPlotZForSeg = new int[numSegments];
+        Vector3d[] seedLocalForSeg = new Vector3d[numSegments];
+        Vector3d[] seedOffsetForSeg = new Vector3d[numSegments];
+        java.util.Arrays.fill(seedPlotXForSeg, -1);
+        java.util.Arrays.fill(seedPlotZForSeg, -1);
         double currentY = basePos.getY() + 1.5;
 
         java.util.Map<BlockPos, net.minecraft.world.level.block.state.BlockState> originalStates = new java.util.HashMap<>();
         List<ServerSubLevel> assembledSubLevels = new ArrayList<>();
+
+        Random random = new Random();
+        List<Integer> seedIndices = new ArrayList<>();
+        if (length > 1) {
+            int maxFruits = Math.min(2, length - 1);
+            int fruitsToSpawn = random.nextInt(maxFruits + 1);
+            while (seedIndices.size() < fruitsToSpawn) {
+                int randIdx = random.nextInt(length - 1) + 2;
+                if (!seedIndices.contains(randIdx)) {
+                    seedIndices.add(randIdx);
+                }
+            }
+        }
+
+        List<Integer> directions = new ArrayList<>(List.of(0, 1, 2, 3));
+        java.util.Collections.shuffle(directions, random);
+        int spawnedFruitCount = 0;
 
         for (int i = 0; i < numSegments; i++) {
             int segmentStart = i * SEGMENT_SIZE;
@@ -222,16 +258,7 @@ public final class SubmarineLianaCommand {
 
             ServerSubLevel subLevel = SubLevelAssemblyHelper.assembleBlocks(level, plotAnchor, segmentBlocks, bounds);
             if (subLevel == null) {
-                try {
-                    Class<?> reasonCls = Class.forName("dev.ryanhcode.sable.api.sublevel.SubLevelRemovalReason");
-                    java.lang.reflect.Method method = container.getClass().getMethod("removeSubLevel", dev.ryanhcode.sable.sublevel.SubLevel.class, reasonCls);
-                    Object reason = reasonCls.getEnumConstants()[0];
-                    for (ServerSubLevel sub : assembledSubLevels) {
-                        try {
-                            method.invoke(container, sub, reason);
-                        } catch (Throwable ignored) {}
-                    }
-                } catch (Throwable ignored) {}
+                removeSubLevels(container, assembledSubLevels);
                 rollback(level, originalStates);
                 return null;
             }
@@ -247,36 +274,59 @@ public final class SubmarineLianaCommand {
 
             for (int j = 0; j < segmentLen; j++) {
                 int blockIndex = segmentStart + j + 1;
-                if (blockIndex % 5 == 0) {
-                    BlockPos seedPos = basePos.above(blockIndex).east(1);
+                if (seedIndices.contains(blockIndex)) {
+                    int dir = directions.get(spawnedFruitCount);
+                    spawnedFruitCount++;
+
+                    BlockPos seedPos;
+                    Vector3d seedFinalPos;
+                    Vector3d localAnchorCurrent;
+                    Vector3d localAnchorOffset;
+
+                    BlockPos segmentPlotAnchor = subLevel.getPlot().getCenterBlock();
+
+                    if (dir == 0) {
+                        seedPos = basePos.above(blockIndex).east(1);
+                        seedFinalPos = new Vector3d(finalPos.x + 0.4, finalPos.y + j - 0.4, finalPos.z);
+                        localAnchorCurrent = new Vector3d(segmentPlotAnchor.getX() + 0.9, segmentPlotAnchor.getY() + j + 0.5, segmentPlotAnchor.getZ() + 0.5);
+                        localAnchorOffset = new Vector3d(0.9, j + 0.5, 0.5);
+                    } else if (dir == 1) {
+                        seedPos = basePos.above(blockIndex).west(1);
+                        seedFinalPos = new Vector3d(finalPos.x - 0.4, finalPos.y + j - 0.4, finalPos.z);
+                        localAnchorCurrent = new Vector3d(segmentPlotAnchor.getX() + 0.1, segmentPlotAnchor.getY() + j + 0.5, segmentPlotAnchor.getZ() + 0.5);
+                        localAnchorOffset = new Vector3d(0.1, j + 0.5, 0.5);
+                    } else if (dir == 2) {
+                        seedPos = basePos.above(blockIndex).south(1);
+                        seedFinalPos = new Vector3d(finalPos.x, finalPos.y + j - 0.4, finalPos.z + 0.4);
+                        localAnchorCurrent = new Vector3d(segmentPlotAnchor.getX() + 0.5, segmentPlotAnchor.getY() + j + 0.5, segmentPlotAnchor.getZ() + 0.9);
+                        localAnchorOffset = new Vector3d(0.5, j + 0.5, 0.9);
+                    } else {
+                        seedPos = basePos.above(blockIndex).north(1);
+                        seedFinalPos = new Vector3d(finalPos.x, finalPos.y + j - 0.4, finalPos.z - 0.4);
+                        localAnchorCurrent = new Vector3d(segmentPlotAnchor.getX() + 0.5, segmentPlotAnchor.getY() + j + 0.5, segmentPlotAnchor.getZ() + 0.1);
+                        localAnchorOffset = new Vector3d(0.5, j + 0.5, 0.1);
+                    }
+
                     originalStates.putIfAbsent(seedPos, level.getBlockState(seedPos));
                     level.setBlock(seedPos, LianaRegistry.CREEPVINE_SEED.get().defaultBlockState(), 3);
                     BoundingBox3i seedBounds = new BoundingBox3i(seedPos.getX(), seedPos.getY(), seedPos.getZ(), seedPos.getX(), seedPos.getY(), seedPos.getZ());
                     ServerSubLevel seedSubLevel = SubLevelAssemblyHelper.assembleBlocks(level, seedPos, List.of(seedPos), seedBounds);
                     if (seedSubLevel == null) {
-                        try {
-                            Class<?> reasonCls = Class.forName("dev.ryanhcode.sable.api.sublevel.SubLevelRemovalReason");
-                            java.lang.reflect.Method method = container.getClass().getMethod("removeSubLevel", dev.ryanhcode.sable.sublevel.SubLevel.class, reasonCls);
-                            Object reason = reasonCls.getEnumConstants()[0];
-                            for (ServerSubLevel sub : assembledSubLevels) {
-                                try {
-                                    method.invoke(container, sub, reason);
-                                } catch (Throwable ignored) {}
-                            }
-                        } catch (Throwable ignored) {}
+                        removeSubLevels(container, assembledSubLevels);
                         rollback(level, originalStates);
                         return null;
                     }
                     assembledSubLevels.add(seedSubLevel);
+                    seedPlotXForSeg[i] = seedSubLevel.getPlot().plotPos.x;
+                    seedPlotZForSeg[i] = seedSubLevel.getPlot().plotPos.z;
+                    seedLocalForSeg[i] = localAnchorOffset;
+                    seedOffsetForSeg[i] = new Vector3d(seedFinalPos).sub(finalPos);
 
-                    Vector3d seedFinalPos = new Vector3d(finalPos.x + 0.4, finalPos.y + j - 0.4, finalPos.z);
                     seedSubLevel.logicalPose().position().set(seedFinalPos);
                     seedSubLevel.updateLastPose();
                     container.physicsSystem().getPipeline().teleport(seedSubLevel, seedFinalPos, new Quaterniond());
 
-                    BlockPos segmentPlotAnchor = subLevel.getPlot().getCenterBlock();
                     BlockPos seedPlotAnchor = seedSubLevel.getPlot().getCenterBlock();
-                    Vector3d localAnchorCurrent = new Vector3d(segmentPlotAnchor.getX() + 0.9, segmentPlotAnchor.getY() + j + 0.5, segmentPlotAnchor.getZ() + 0.5);
                     Vector3d localAnchorNext = new Vector3d(seedPlotAnchor.getX() + 0.5, seedPlotAnchor.getY() + 0.9, seedPlotAnchor.getZ() + 0.5);
 
                     PhysicsConstraintHandle seedJoint = container.physicsSystem().getPipeline().addConstraint(
@@ -296,7 +346,9 @@ public final class SubmarineLianaCommand {
 
                     net.minecraft.world.level.block.entity.BlockEntity rawBe = subLevel.getPlot().getEmbeddedLevelAccessor().getBlockEntity(segmentPlotAnchor);
                     if (rawBe instanceof SubmarineLianaBlockEntity lianaBe) {
-                        lianaBe.setSeed(seedSubLevel.getUniqueId());
+                        lianaBe.setSeed(seedSubLevel.getUniqueId(), localAnchorOffset);
+                        lianaBe.setSeedJoint(seedJoint);
+                        lianaBe.setSeedPlot(seedSubLevel.getPlot().plotPos.x, seedSubLevel.getPlot().plotPos.z);
                     }
                 }
             }
@@ -306,15 +358,55 @@ public final class SubmarineLianaCommand {
 
         for (int i = 0; i < numSegments; i++) {
             ServerSubLevel current = segments[i];
+            int segmentLen = Math.min(length, (i + 1) * SEGMENT_SIZE) - (i * SEGMENT_SIZE);
+            boolean isController = (i == 0);
+            Vector3d ground = isController
+                    ? new Vector3d(basePos.getX() + 0.5, basePos.getY() + 1.0, basePos.getZ() + 0.5)
+                    : null;
+            int parentPlotX = (i > 0) ? segments[i - 1].getPlot().plotPos.x : -1;
+            int parentPlotZ = (i > 0) ? segments[i - 1].getPlot().plotPos.z : -1;
+            int childPlotX = (i < numSegments - 1) ? segments[i + 1].getPlot().plotPos.x : -1;
+            int childPlotZ = (i < numSegments - 1) ? segments[i + 1].getPlot().plotPos.z : -1;
+
+            Vector3d seedLocal = seedLocalForSeg[i];
+            Vector3d seedOffset = seedOffsetForSeg[i];
+            PlantPhysicsRegistry.get(level).putSegment(new PlantPhysicsRegistry.SegmentData(
+                    current.getPlot().plotPos.x,
+                    current.getPlot().plotPos.z,
+                    isController,
+                    ground != null,
+                    ground != null ? ground.x : 0.0,
+                    ground != null ? ground.y : 0.0,
+                    ground != null ? ground.z : 0.0,
+                    parentPlotX, parentPlotZ,
+                    childPlotX, childPlotZ,
+                    seedPlotXForSeg[i], seedPlotZForSeg[i],
+                    seedLocal != null ? seedLocal.x : 0.0,
+                    seedLocal != null ? seedLocal.y : 0.0,
+                    seedLocal != null ? seedLocal.z : 0.0,
+                    seedOffset != null ? seedOffset.x : 0.0,
+                    seedOffset != null ? seedOffset.y : 0.0,
+                    seedOffset != null ? seedOffset.z : 0.0,
+                    segmentLen
+            ));
+
             BlockPos plotAnchor = current.getPlot().getCenterBlock();
             net.minecraft.world.level.block.entity.BlockEntity rawBe = current.getPlot().getEmbeddedLevelAccessor().getBlockEntity(plotAnchor);
             if (rawBe instanceof SubmarineLianaBlockEntity be) {
-                be.setController(i == 0);
+                be.setController(isController);
+                be.setSegmentLen(segmentLen);
+                if (ground != null) {
+                    be.setGroundAnchor(ground);
+                }
                 if (i > 0) {
                     be.setParent(segmentIds[i - 1]);
+                    be.setParentPlot(parentPlotX, parentPlotZ);
                 }
                 if (i < numSegments - 1) {
-                    be.setChild(segmentIds[i + 1]);
+                    be.setChildPlot(childPlotX, childPlotZ);
+                }
+                if (seedPlotXForSeg[i] != -1) {
+                    be.setSeedPlot(seedPlotXForSeg[i], seedPlotZForSeg[i]);
                 }
             }
         }
@@ -336,6 +428,10 @@ public final class SubmarineLianaCommand {
             );
             if (groundJoint != null) {
                 groundJoint.setContactsEnabled(false);
+            }
+            net.minecraft.world.level.block.entity.BlockEntity rawBe0 = segments[0].getPlot().getEmbeddedLevelAccessor().getBlockEntity(plotAnchor0);
+            if (rawBe0 instanceof SubmarineLianaBlockEntity be0) {
+                be0.setGroundJoint(groundJoint);
             }
         }
 
@@ -360,6 +456,10 @@ public final class SubmarineLianaCommand {
             );
             if (joint != null) {
                 joint.setContactsEnabled(false);
+            }
+            net.minecraft.world.level.block.entity.BlockEntity rawBeNext = next.getPlot().getEmbeddedLevelAccessor().getBlockEntity(nextPlotAnchor);
+            if (rawBeNext instanceof SubmarineLianaBlockEntity beNext) {
+                beNext.setParentJoint(joint);
             }
         }
 

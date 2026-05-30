@@ -113,10 +113,7 @@ public final class LianaLODOptimizer {
         }
 
         if (!candidates.isEmpty()) {
-            candidates.sort(Comparator.comparingDouble(c -> c.minDistanceSqr));
-            int limit = Math.min(5, candidates.size());
-            for (int i = 0; i < limit; i++) {
-                WakeupCandidate candidate = candidates.get(i);
+            for (WakeupCandidate candidate : candidates) {
                 SablePhysicsHelper.setAsleep(candidate.handle, false);
                 awakeSubLevels.add(candidate.sub.getUniqueId());
             }

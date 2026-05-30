@@ -15,7 +15,10 @@ public record OceanDepthOffset(Holder<DensityFunction> input, Holder<DensityFunc
 
     public static final KeyDispatchDataCodec<OceanDepthOffset> CODEC_HOLDER = KeyDispatchDataCodec.of(CODEC);
 
-    private static final double DEEPEN = 10.0 / 128.0;
+    private static final double DENSITY_PER_BLOCK = 1.0 / 128.0;
+    // Lower bound uses the config's maximum depth so it stays valid for any setting without
+    // reading the config during early init (which can run before configs are loaded).
+    private static final double MAX_DEEPEN = 256.0 * DENSITY_PER_BLOCK;
 
     @Override
     public double compute(FunctionContext context) {
@@ -33,7 +36,8 @@ public record OceanDepthOffset(Holder<DensityFunction> input, Holder<DensityFunc
         } else {
             return offset;
         }
-        return offset - DEEPEN * s;
+        double deepen = com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.DEEPER_OCEANS_DEPTH.get() * DENSITY_PER_BLOCK;
+        return offset - deepen * s;
     }
 
     @Override
@@ -50,7 +54,7 @@ public record OceanDepthOffset(Holder<DensityFunction> input, Holder<DensityFunc
 
     @Override
     public double minValue() {
-        return input.value().minValue() - DEEPEN;
+        return input.value().minValue() - MAX_DEEPEN;
     }
 
     @Override

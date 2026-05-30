@@ -13,6 +13,8 @@ public class SubmarineConfig {
     public static final ModConfigSpec.DoubleValue WATER_THRUSTER_POWER_MULTIPLIER;
     public static final ModConfigSpec.BooleanValue ENABLE_PERMANENT_WATER_CULLING_TEST;
     public static final ModConfigSpec.BooleanValue ENABLE_DEEPER_OCEANS;
+    public static final ModConfigSpec.IntValue DEEPER_OCEANS_DEPTH;
+    public static final ModConfigSpec.BooleanValue WELCOME_SCREEN_SEEN;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -58,9 +60,21 @@ public class SubmarineConfig {
                 .comment("Enable the experimental Permanent Water Culling test for submarines and boats")
                 .define("enablePermanentWaterCullingTest", false);
         ENABLE_DEEPER_OCEANS = builder
-                .comment("Deepen the ocean floor by roughly 10 blocks.",
-                        "Off = vanilla ocean depth.")
+                .comment("Deepen the ocean floor below vanilla.",
+                        "Off = vanilla ocean depth. Set the amount with deeperOceansDepth.")
                 .define("enableDeeperOceans", false);
+        DEEPER_OCEANS_DEPTH = builder
+                .comment("How many blocks deeper to push the ocean floor when enableDeeperOceans is on.",
+                        "WARNING: large values generate and render far more terrain below the sea floor",
+                        "and can badly hurt world-generation and rendering performance. Raise it carefully.")
+                .defineInRange("deeperOceansDepth", 10, 1, 256);
+        builder.pop();
+
+        builder.push("client");
+        WELCOME_SCREEN_SEEN = builder
+                .comment("Internal: set to true once the Deep Seas welcome screen has been acknowledged.",
+                        "Set back to false to show the welcome screen again on the next main menu.")
+                .define("welcomeScreenSeen", false);
         builder.pop();
 
         SPEC = builder.build();

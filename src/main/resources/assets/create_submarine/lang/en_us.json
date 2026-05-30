@@ -76,7 +76,13 @@
   "create_submarine.configuration.enablePermanentWaterCullingTest": "Permanent Water Culling Test",
   "create_submarine.configuration.enablePermanentWaterCullingTest.tooltip": "Enable the experimental Permanent Water Culling test for submarines and boats.",
   "create_submarine.configuration.enableDeeperOceans": "Deeper Oceans",
-  "create_submarine.configuration.enableDeeperOceans.tooltip": "Deepen the ocean floor by roughly 10 blocks. Off = vanilla ocean depth.",
+  "create_submarine.configuration.enableDeeperOceans.tooltip": "Deepen the ocean floor below vanilla. Off = vanilla ocean depth. Set the amount with Deeper Oceans Depth.",
+  "create_submarine.configuration.deeperOceansDepth": "Deeper Oceans Depth",
+  "create_submarine.configuration.deeperOceansDepth.tooltip": "How many blocks deeper to push the ocean floor when Deeper Oceans is on. WARNING: large values generate and render far more terrain and can badly hurt performance. Raise it carefully. Default 10.",
+  "create_submarine.welcome.title": "Welcome to Create Deep Seas",
+  "create_submarine.welcome.message": "It's strongly recommended to set up your Deep Seas preferences before you dive in — hull strength, propulsion, ocean depth and more can all be tuned to your liking.",
+  "create_submarine.welcome.configure": "Configure the mod",
+  "create_submarine.welcome.dismiss": "Maybe later",
   "item.create_submarine.phycological_membrane": "Phycological Membrane",
   "item.create_submarine.phycological_membrane.tooltip.summary": "Can be filled with air."
 }
