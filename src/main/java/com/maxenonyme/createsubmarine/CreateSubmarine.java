@@ -230,6 +230,7 @@ public class CreateSubmarine {
                 MENUS.register(modEventBus);
                 DENSITY_FUNCTIONS.register(modEventBus);
                 modEventBus.addListener(this::onCommonSetup);
+                modEventBus.addListener(this::onConfigLoaded);
                 modEventBus.addListener(this::registerPayloads);
                 NeoForge.EVENT_BUS.addListener(SubmarinePressureSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineSinkingSystem::onServerTick);
@@ -325,6 +326,12 @@ public class CreateSubmarine {
                                                 return be.energyStorage;
                                         return null;
                                 });
+        }
+
+        private void onConfigLoaded(net.neoforged.fml.event.config.ModConfigEvent event) {
+                if (event.getConfig().getSpec() == SubmarineConfig.SPEC) {
+                        com.maxenonyme.createsubmarine.worldgen.OceanDepthOffset.refreshConfig();
+                }
         }
 
         private void onCommonSetup(FMLCommonSetupEvent event) {

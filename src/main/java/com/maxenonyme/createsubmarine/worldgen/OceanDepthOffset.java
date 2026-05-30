@@ -1,5 +1,6 @@
 package com.maxenonyme.createsubmarine.worldgen;
 
+import com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Holder;
@@ -16,14 +17,20 @@ public record OceanDepthOffset(Holder<DensityFunction> input, Holder<DensityFunc
     public static final KeyDispatchDataCodec<OceanDepthOffset> CODEC_HOLDER = KeyDispatchDataCodec.of(CODEC);
 
     private static final double DENSITY_PER_BLOCK = 1.0 / 128.0;
-    // Lower bound uses the config's maximum depth so it stays valid for any setting without
-    // reading the config during early init (which can run before configs are loaded).
     private static final double MAX_DEEPEN = 256.0 * DENSITY_PER_BLOCK;
+
+    private static volatile boolean enabled = false;
+    private static volatile double deepen = 10.0 * DENSITY_PER_BLOCK;
+
+    public static void refreshConfig() {
+        enabled = SubmarineConfig.ENABLE_DEEPER_OCEANS.get();
+        deepen = SubmarineConfig.DEEPER_OCEANS_DEPTH.get() * DENSITY_PER_BLOCK;
+    }
 
     @Override
     public double compute(FunctionContext context) {
         double offset = input.value().compute(context);
-        if (!com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.ENABLE_DEEPER_OCEANS.get()) {
+        if (!enabled) {
             return offset;
         }
         double c = continents.value().compute(context);
@@ -36,7 +43,6 @@ public record OceanDepthOffset(Holder<DensityFunction> input, Holder<DensityFunc
         } else {
             return offset;
         }
-        double deepen = com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.DEEPER_OCEANS_DEPTH.get() * DENSITY_PER_BLOCK;
         return offset - deepen * s;
     }
 
