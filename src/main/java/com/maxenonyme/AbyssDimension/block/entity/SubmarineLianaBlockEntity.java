@@ -154,7 +154,8 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
     }
 
     private ServerSubLevel findSubLevelByPlot(ServerSubLevelContainer container, int plotX, int plotZ) {
-        if (plotX == -1) return null;
+        if (plotX == -1)
+            return null;
         for (ServerSubLevel sub : container.getAllSubLevels()) {
             if (sub.getPlot() != null && sub.getPlot().plotPos.x == plotX && sub.getPlot().plotPos.z == plotZ) {
                 return sub;
@@ -191,17 +192,18 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
 
     @Override
     public void sable$physicsTick(ServerSubLevel subLevel, RigidBodyHandle handle, double timeStep) {
-        // A segment sublevel holds one liana BlockEntity per stacked block, and every one is a
-        // physics actor. Only the block at the plot centre drives the segment, otherwise each BE
-        // would recreate its own joints and stack buoyancy/player forces N times — which makes the
-        // whole chain fight itself and jitter. The non-driver BEs just render and hold light.
+        if (subLevel.getPlot() == null) {
+            return;
+        }
         if (!worldPosition.equals(subLevel.getPlot().getCenterBlock())) {
             return;
         }
 
         if (this.parentPlotX == -1 && !this.isController && this.groundAnchor == null) {
-            com.maxenonyme.AbyssDimension.system.PlantPhysicsRegistry registry = com.maxenonyme.AbyssDimension.system.PlantPhysicsRegistry.get(subLevel.getLevel());
-            com.maxenonyme.AbyssDimension.system.PlantPhysicsRegistry.SegmentData data = registry.getSegment(subLevel.getPlot().plotPos.x, subLevel.getPlot().plotPos.z);
+            com.maxenonyme.AbyssDimension.system.PlantPhysicsRegistry registry = com.maxenonyme.AbyssDimension.system.PlantPhysicsRegistry
+                    .get(subLevel.getLevel());
+            com.maxenonyme.AbyssDimension.system.PlantPhysicsRegistry.SegmentData data = registry
+                    .getSegment(subLevel.getPlot().plotPos.x, subLevel.getPlot().plotPos.z);
             if (data != null) {
                 this.isController = data.root();
                 this.segmentLen = data.segmentLen();
@@ -215,8 +217,10 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
                 this.seedPlotX = data.attachmentPlotX();
                 this.seedPlotZ = data.attachmentPlotZ();
                 if (data.hasAttachment()) {
-                    this.seedLocalAnchor = new Vector3d(data.attachmentLocalX(), data.attachmentLocalY(), data.attachmentLocalZ());
-                    this.seedOffset = new Vector3d(data.attachmentOffsetX(), data.attachmentOffsetY(), data.attachmentOffsetZ());
+                    this.seedLocalAnchor = new Vector3d(data.attachmentLocalX(), data.attachmentLocalY(),
+                            data.attachmentLocalZ());
+                    this.seedOffset = new Vector3d(data.attachmentOffsetX(), data.attachmentOffsetY(),
+                            data.attachmentOffsetZ());
                 }
             }
         }
@@ -226,11 +230,12 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
         totalForce.set(0, 0, 0);
         totalTorque.set(0, 0, 0);
 
-
         if (isController && groundAnchor != null && (groundJoint == null || !groundJoint.isValid())) {
-            ServerSubLevelContainer container = (ServerSubLevelContainer) SubLevelContainer.getContainer(subLevel.getLevel());
+            ServerSubLevelContainer container = (ServerSubLevelContainer) SubLevelContainer
+                    .getContainer(subLevel.getLevel());
             if (container != null) {
-                Vector3d localAnchor0 = new Vector3d(worldPosition.getX() + 0.5, worldPosition.getY(), worldPosition.getZ() + 0.5);
+                Vector3d localAnchor0 = new Vector3d(worldPosition.getX() + 0.5, worldPosition.getY(),
+                        worldPosition.getZ() + 0.5);
                 groundJoint = container.physicsSystem().getPipeline().addConstraint(
                         subLevel,
                         null,
@@ -239,9 +244,8 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
                                 new Vector3d(groundAnchor),
                                 new Quaterniond(),
                                 new Quaterniond(),
-                                EnumSet.of(ConstraintJointAxis.LINEAR_X, ConstraintJointAxis.LINEAR_Y, ConstraintJointAxis.LINEAR_Z, ConstraintJointAxis.ANGULAR_Y)
-                        )
-                );
+                                EnumSet.of(ConstraintJointAxis.LINEAR_X, ConstraintJointAxis.LINEAR_Y,
+                                        ConstraintJointAxis.LINEAR_Z, ConstraintJointAxis.ANGULAR_Y)));
                 if (groundJoint != null) {
                     groundJoint.setContactsEnabled(false);
                     container.physicsSystem().getPipeline().wakeUp(subLevel);
@@ -250,7 +254,8 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
         }
 
         if ((parentId != null || parentPlotX != -1) && (parentJoint == null || !parentJoint.isValid())) {
-            ServerSubLevelContainer container = (ServerSubLevelContainer) SubLevelContainer.getContainer(subLevel.getLevel());
+            ServerSubLevelContainer container = (ServerSubLevelContainer) SubLevelContainer
+                    .getContainer(subLevel.getLevel());
             if (container != null) {
                 ServerSubLevel parentSub = null;
                 if (parentPlotX != -1) {
@@ -262,11 +267,14 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
                 if (parentSub != null && parentSub.getPlot() != null) {
                     BlockPos parentPlotAnchor = parentSub.getPlot().getCenterBlock();
                     BlockPos currentPlotAnchor = subLevel.getPlot().getCenterBlock();
-                    dev.ryanhcode.sable.companion.math.BoundingBox3ic parentBounds = parentSub.getPlot().getBoundingBox();
+                    dev.ryanhcode.sable.companion.math.BoundingBox3ic parentBounds = parentSub.getPlot()
+                            .getBoundingBox();
                     int parentLenVal = parentBounds.maxY() - parentBounds.minY() + 1;
-                    Vector3d localAnchorCurrent = new Vector3d(parentPlotAnchor.getX() + 0.5, parentPlotAnchor.getY() + parentLenVal - 0.05, parentPlotAnchor.getZ() + 0.5);
-                    Vector3d localAnchorNext = new Vector3d(currentPlotAnchor.getX() + 0.5, currentPlotAnchor.getY() + 0.05, currentPlotAnchor.getZ() + 0.5);
-                    
+                    Vector3d localAnchorCurrent = new Vector3d(parentPlotAnchor.getX() + 0.5,
+                            parentPlotAnchor.getY() + parentLenVal - 0.05, parentPlotAnchor.getZ() + 0.5);
+                    Vector3d localAnchorNext = new Vector3d(currentPlotAnchor.getX() + 0.5,
+                            currentPlotAnchor.getY() + 0.05, currentPlotAnchor.getZ() + 0.5);
+
                     parentJoint = container.physicsSystem().getPipeline().addConstraint(
                             parentSub,
                             subLevel,
@@ -275,9 +283,8 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
                                     localAnchorNext,
                                     new Quaterniond(),
                                     new Quaterniond(),
-                                    EnumSet.of(ConstraintJointAxis.LINEAR_X, ConstraintJointAxis.LINEAR_Y, ConstraintJointAxis.LINEAR_Z, ConstraintJointAxis.ANGULAR_Y)
-                            )
-                    );
+                                    EnumSet.of(ConstraintJointAxis.LINEAR_X, ConstraintJointAxis.LINEAR_Y,
+                                            ConstraintJointAxis.LINEAR_Z, ConstraintJointAxis.ANGULAR_Y)));
                     if (parentJoint != null) {
                         parentJoint.setContactsEnabled(false);
                         container.physicsSystem().getPipeline().wakeUp(subLevel);
@@ -287,7 +294,6 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
             }
         }
 
-
         if ((seedId != null || seedPlotX != -1) && (seedJoint == null || !seedJoint.isValid())) {
             Vector3d localAnchorCurrent = null;
             if (seedLocalAnchor != null) {
@@ -295,15 +301,16 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
                 localAnchorCurrent = new Vector3d(
                         segmentPlotAnchor.getX() + seedLocalAnchor.x,
                         segmentPlotAnchor.getY() + seedLocalAnchor.y,
-                        segmentPlotAnchor.getZ() + seedLocalAnchor.z
-                );
+                        segmentPlotAnchor.getZ() + seedLocalAnchor.z);
             } else if (seedLocalY >= 0) {
                 BlockPos segmentPlotAnchor = subLevel.getPlot().getCenterBlock();
-                localAnchorCurrent = new Vector3d(segmentPlotAnchor.getX() + 0.9, segmentPlotAnchor.getY() + seedLocalY + 0.5, segmentPlotAnchor.getZ() + 0.5);
+                localAnchorCurrent = new Vector3d(segmentPlotAnchor.getX() + 0.9,
+                        segmentPlotAnchor.getY() + seedLocalY + 0.5, segmentPlotAnchor.getZ() + 0.5);
             }
 
             if (localAnchorCurrent != null) {
-                ServerSubLevelContainer container = (ServerSubLevelContainer) SubLevelContainer.getContainer(subLevel.getLevel());
+                ServerSubLevelContainer container = (ServerSubLevelContainer) SubLevelContainer
+                        .getContainer(subLevel.getLevel());
                 if (container != null) {
                     ServerSubLevel seedSub = null;
                     if (seedPlotX != -1) {
@@ -333,8 +340,9 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
                         }
 
                         BlockPos seedPlotAnchor = seedSub.getPlot().getCenterBlock();
-                        Vector3d localAnchorNext = new Vector3d(seedPlotAnchor.getX() + 0.5, seedPlotAnchor.getY() + 0.9, seedPlotAnchor.getZ() + 0.5);
-                        
+                        Vector3d localAnchorNext = new Vector3d(seedPlotAnchor.getX() + 0.5,
+                                seedPlotAnchor.getY() + 0.9, seedPlotAnchor.getZ() + 0.5);
+
                         seedJoint = container.physicsSystem().getPipeline().addConstraint(
                                 subLevel,
                                 seedSub,
@@ -343,9 +351,8 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
                                         localAnchorNext,
                                         new Quaterniond(),
                                         new Quaterniond(),
-                                        EnumSet.of(ConstraintJointAxis.LINEAR_X, ConstraintJointAxis.LINEAR_Y, ConstraintJointAxis.LINEAR_Z)
-                                )
-                        );
+                                        EnumSet.of(ConstraintJointAxis.LINEAR_X, ConstraintJointAxis.LINEAR_Y,
+                                                ConstraintJointAxis.LINEAR_Z)));
                         if (seedJoint != null) {
                             seedJoint.setContactsEnabled(false);
                             container.physicsSystem().getPipeline().wakeUp(subLevel);
@@ -371,11 +378,13 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
         }
 
         if (!anchored) {
-            handle.addLinearAndAngularVelocity(tempVec.set(linearVelocity).negate(), tempVec2.set(angularVelocity).negate());
+            handle.addLinearAndAngularVelocity(tempVec.set(linearVelocity).negate(),
+                    tempVec2.set(angularVelocity).negate());
             subLevel.logicalPose().position().set(restPos);
             subLevel.logicalPose().orientation().set(restRot);
             subLevel.updateLastPose();
-            ServerSubLevelContainer container = (ServerSubLevelContainer) SubLevelContainer.getContainer(subLevel.getLevel());
+            ServerSubLevelContainer container = (ServerSubLevelContainer) SubLevelContainer
+                    .getContainer(subLevel.getLevel());
             if (container != null) {
                 container.physicsSystem().getPipeline().teleport(subLevel, restPos, restRot);
             }
@@ -475,9 +484,12 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
         handle.applyForcesAndReset(forceTotal);
     }
 
-    // Topology (controller/parent/ground/attachment) is owned by PlantPhysicsRegistry, not the
-    // block entity NBT: a segment holds one BE per stacked block and the embedded-level lookup that
-    // would set those fields at spawn isn't reliable, so the NBT copy was always empty. Only the
+    // Topology (controller/parent/ground/attachment) is owned by
+    // PlantPhysicsRegistry, not the
+    // block entity NBT: a segment holds one BE per stacked block and the
+    // embedded-level lookup that
+    // would set those fields at spawn isn't reliable, so the NBT copy was always
+    // empty. Only the
     // rendered light level lives on the BE itself.
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
