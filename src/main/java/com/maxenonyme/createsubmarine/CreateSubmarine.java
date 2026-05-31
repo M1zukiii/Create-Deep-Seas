@@ -216,6 +216,16 @@ public class CreateSubmarine {
         public static final Supplier<Item> PHYCOLOGICAL_MEMBRANE = ITEMS.register("phycological_membrane",
                         () -> new com.maxenonyme.createsubmarine.submarine.block.PhycologicalMembraneItem(new net.minecraft.world.item.Item.Properties()
                                         .rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
+        public static final Supplier<Item> STEEL_CABLE = ITEMS.register("steel_cable",
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.SteelCableItem(new net.minecraft.world.item.Item.Properties()));
+
+        public static final Supplier<Block> POULIS = BLOCKS.register("poulis",
+                        () -> new PoulisBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).noOcclusion()));
+        public static final Supplier<Item> POULIS_ITEM = ITEMS.register("poulis",
+                        () -> new net.minecraft.world.item.BlockItem(POULIS.get(), new Item.Properties()));
+        public static final Supplier<BlockEntityType<PoulisBlockEntity>> POULIS_BE = BLOCK_ENTITIES.register(
+                        "poulis",
+                        () -> BlockEntityType.Builder.of(PoulisBlockEntity::new, POULIS.get()).build(null));
 
         public CreateSubmarine(IEventBus modEventBus, ModContainer modContainer) {
                 com.maxenonyme.AbyssDimension.LianaRegistry.init();
@@ -235,6 +245,7 @@ public class CreateSubmarine {
                 NeoForge.EVENT_BUS.addListener(SubmarinePressureSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineSinkingSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineInteractionSystem::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.SteelCablePhysicsSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.system.LianaLODOptimizer::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.system.SubmarineLianaCommand::onServerTick);
                 NeoForge.EVENT_BUS.addListener(
@@ -374,6 +385,10 @@ public class CreateSubmarine {
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "floater"), subSection);
                         tabItems.add(PHYCOLOGICAL_MEMBRANE::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "phycological_membrane"), subSection);
+                        tabItems.add(STEEL_CABLE::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "steel_cable"), subSection);
+                        tabItems.add(POULIS_ITEM::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "poulis"), subSection);
                 } catch (Exception ignored) {
                 }
         }

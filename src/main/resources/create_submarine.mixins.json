@@ -6,12 +6,17 @@
   "mixins": [
     "LevelChunkMixin",
     "LevelMixin",
+    "RopeStrandHolderBehaviorMixin",
+    "ServerRopeStrandMixin",
+    "RapierVoxelColliderBakeryMixin",
     "compat.SablePhysicsCrashFixMixin"
   ],
   "client": [
+    "ClientRopeStrandMixin",
     "FluidRenderHelperBuilderMixin",
     "FluidRenderHelperMixin",
     "LevelRendererMixin",
+    "RopeStrandRendererMixin",
     "WaterOcclusionRendererMixin",
     "compat.AeronauticsVeilCrashFixMixin",
     "compat.AeronauticsShaderCrashFixMixin",

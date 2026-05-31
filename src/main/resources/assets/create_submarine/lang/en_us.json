@@ -84,5 +84,7 @@
   "create_submarine.welcome.configure": "Configure the mod",
   "create_submarine.welcome.dismiss": "Maybe later",
   "item.create_submarine.phycological_membrane": "Phycological Membrane",
-  "item.create_submarine.phycological_membrane.tooltip.summary": "Can be filled with air."
+  "item.create_submarine.phycological_membrane.tooltip.summary": "Can be filled with air.",
+  "item.create_submarine.steel_cable": "Steel Cable",
+  "block.create_submarine.poulis": "Pulley"
 }
