@@ -94,7 +94,7 @@
 "create_submarine.configuration.globalMaxDepthCap.tooltip": "应用于所有非“机械动力：深海”方块的 maxWaterDepth 上限。各方块数值储存在 config/submarine_hull.json 中。",
 
 "create_submarine.configuration.maxDepthMultiplier": "最大深度倍率",
-"create_submarine.configuration.maxDepthMultiplier.tooltip": "运行时对所有方块有效 maxWaterDepth 的倍率。数值越低，船体越脆弱；数值越高，船体越坚固。",
+"create_submarine.configuration.maxDepthMultiplier.tooltip": "运行时对所有方块的有效 maxWaterDepth 的倍率。数值越低，船体越脆弱；数值越高，船体越坚固。",
 
 "create_submarine.configuration.implosionChanceMultiplier": "内爆几率倍率",
 "create_submarine.configuration.implosionChanceMultiplier.tooltip": "运行时对所有方块内爆几率的倍率。数值越低，船体开裂速度越慢；数值越高，船体开裂速度越快。",
