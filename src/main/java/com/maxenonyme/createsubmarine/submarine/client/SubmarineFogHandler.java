@@ -32,7 +32,7 @@ public class SubmarineFogHandler {
             return;
         }
         SubmarineWaterCullBuffer.syncSubmarinePoses();
-        cachedShouldFog = computeShouldFog(mc.level, player.getEyePosition());
+        cachedShouldFog = false;
     }
 
     @SubscribeEvent

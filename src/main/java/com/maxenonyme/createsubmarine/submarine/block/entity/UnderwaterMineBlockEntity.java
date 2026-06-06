@@ -36,9 +36,26 @@ public class UnderwaterMineBlockEntity extends BlockEntity {
     private static final Map<UUID, Integer> MINE_COUNTS = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_COUNT_TIMES = new ConcurrentHashMap<>();
     private boolean isExploded = false;
+    public UUID ownerUUID;
 
     public UnderwaterMineBlockEntity(BlockPos pos, BlockState state) {
         super(CreateSubmarine.UNDERWATER_MINE_BE.get(), pos, state);
+    }
+
+    @Override
+    protected void saveAdditional(net.minecraft.nbt.CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        if (this.ownerUUID != null) {
+            tag.putUUID("OwnerUUID", this.ownerUUID);
+        }
+    }
+
+    @Override
+    protected void loadAdditional(net.minecraft.nbt.CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+        if (tag.hasUUID("OwnerUUID")) {
+            this.ownerUUID = tag.getUUID("OwnerUUID");
+        }
     }
 
     public static void clearAll() {
@@ -98,7 +115,18 @@ public class UnderwaterMineBlockEntity extends BlockEntity {
                     worldPos.x + 3.0, worldPos.y + 3.0, worldPos.z + 3.0);
             java.util.List<Entity> nearbyEntities = serverParentLevel.getEntitiesOfClass(
                     Entity.class, triggerBox,
-                    e -> (e instanceof Player || e instanceof LivingEntity));
+                    e -> {
+                        if (e instanceof net.minecraft.world.entity.vehicle.Boat) {
+                            return true;
+                        }
+                        if (e instanceof Player || e instanceof LivingEntity) {
+                            if (be.ownerUUID != null && e.getUUID().equals(be.ownerUUID)) {
+                                return false;
+                            }
+                            return true;
+                        }
+                        return false;
+                    });
 
             boolean otherSubNearby = false;
             SubLevelContainer container = SubLevelContainer.getContainer(serverParentLevel);
@@ -185,6 +213,10 @@ public class UnderwaterMineBlockEntity extends BlockEntity {
         if (this.isExploded) return;
         this.isExploded = true;
 
+        if (level.getBlockState(pos).is(CreateSubmarine.UNDERWATER_MINE.get())) {
+            level.removeBlock(pos, false);
+        }
+
         double worldX = worldPos.x;
         double worldY = worldPos.y;
         double worldZ = worldPos.z;
@@ -207,7 +239,7 @@ public class UnderwaterMineBlockEntity extends BlockEntity {
 
         for (ServerPlayer player : parentLevel.players()) {
             double dist = player.distanceToSqr(worldX, worldY, worldZ);
-            
+
             if (mineInWater && player.isUnderWater() && dist < 160.0 * 160.0) {
                 player.connection.send(new net.minecraft.network.protocol.game.ClientboundSoundPacket(
                         net.minecraft.core.registries.BuiltInRegistries.SOUND_EVENT.wrapAsHolder(CreateSubmarine.UNDERWATER_EXPLOSION_SOUND.get()),
@@ -318,10 +350,6 @@ public class UnderwaterMineBlockEntity extends BlockEntity {
                     }
                 }
             }
-        }
-
-        if (level.getBlockState(pos).is(CreateSubmarine.UNDERWATER_MINE.get())) {
-            level.removeBlock(pos, false);
         }
     }
 

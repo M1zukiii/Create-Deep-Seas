@@ -31,6 +31,8 @@ public final class CreateSubmarineClient {
     }
 
     public static void init(IEventBus modEventBus, ModContainer modContainer) {
+        com.maxenonyme.createsubmarine.submarine.config.SubmarineClientState.load();
+        com.maxenonyme.createsubmarine.submarine.system.UpdateChecker.check();
         AllPartialModels.init();
         modContainer.registerExtensionPoint(
                 IConfigScreenFactory.class,
@@ -45,6 +47,11 @@ public final class CreateSubmarineClient {
 
         NeoForge.EVENT_BUS.addListener(
                 com.maxenonyme.createsubmarine.submarine.client.DeepSeasWelcomeScreen::onScreenOpening);
+        NeoForge.EVENT_BUS.addListener(
+                com.maxenonyme.createsubmarine.submarine.client.LithostitchedMissingScreen::onScreenOpening);
+        NeoForge.EVENT_BUS.addListener(
+                com.maxenonyme.createsubmarine.submarine.client.DeepSeasUpdateScreen::onScreenOpening);
+
 
         NeoForge.EVENT_BUS.register(SubmarineFogHandler.class);
         NeoForge.EVENT_BUS.register(SubLevelCrackRenderer.class);

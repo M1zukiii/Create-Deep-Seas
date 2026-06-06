@@ -247,7 +247,7 @@ public class CookiecutterSharkEntity extends WaterAnimal {
         if (tag.contains("ChargeCooldown")) {
             chargeCooldown = tag.getInt("ChargeCooldown");
         }
-        // The latch is runtime-only state; a freshly loaded shark must never stay frozen.
+
         this.setNoAi(false);
         this.setNoGravity(false);
         this.noPhysics = false;

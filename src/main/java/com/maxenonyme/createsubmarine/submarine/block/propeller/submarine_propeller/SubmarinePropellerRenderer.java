@@ -49,7 +49,7 @@ public class SubmarinePropellerRenderer extends SimplePropellerRenderer<Submarin
         final net.createmod.catnip.render.SuperByteBuffer propeller = net.createmod.catnip.render.CachedBuffers.partialFacing(this.getCurrentModel(be), state);
         final float angle = this.getAngle(partialTicks, dir, be);
         kineticRotationTransform(propeller, be, dir.getAxis(), angle, light);
-        
+
         if (dir.getAxis().isHorizontal()) {
             propeller.rotateCentered(net.createmod.catnip.math.AngleHelper.rad(net.createmod.catnip.math.AngleHelper.horizontalAngle(dir.getOpposite())), Direction.UP);
         }
@@ -61,7 +61,7 @@ public class SubmarinePropellerRenderer extends SimplePropellerRenderer<Submarin
 
         final net.createmod.catnip.render.SuperByteBuffer contraPropeller = net.createmod.catnip.render.CachedBuffers.partialFacing(this.getContraModel(be), state);
         kineticRotationTransform(contraPropeller, be, dir.getAxis(), -angle, light);
-        
+
         if (dir.getAxis().isHorizontal()) {
             contraPropeller.rotateCentered(net.createmod.catnip.math.AngleHelper.rad(net.createmod.catnip.math.AngleHelper.horizontalAngle(dir.getOpposite())), Direction.UP);
         }

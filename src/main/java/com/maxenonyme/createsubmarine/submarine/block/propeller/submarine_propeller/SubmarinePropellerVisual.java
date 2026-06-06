@@ -44,7 +44,7 @@ public class SubmarinePropellerVisual extends SimplePropellerVisual<SubmarinePro
     @Override
     public void beginFrame(final Context context) {
         super.beginFrame(context);
-        
+
         final float angle = this.getAngle(context.partialTick());
         this.contraPropeller.identityRotation()
                 .rotate(net.minecraft.util.Mth.DEG_TO_RAD * -angle, this.rotationAxis.x, this.rotationAxis.y, this.rotationAxis.z)

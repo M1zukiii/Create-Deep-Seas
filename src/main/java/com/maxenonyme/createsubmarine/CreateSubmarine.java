@@ -48,6 +48,10 @@ public class CreateSubmarine {
                         .create(BuiltInRegistries.MENU, MOD_ID);
         public static final DeferredRegister<net.minecraft.world.effect.MobEffect> MOB_EFFECTS = DeferredRegister
                         .create(Registries.MOB_EFFECT, MOD_ID);
+        public static final DeferredRegister<com.mojang.serialization.MapCodec<? extends net.neoforged.neoforge.common.conditions.ICondition>> CONDITION_CODECS = DeferredRegister
+                        .create(net.neoforged.neoforge.registries.NeoForgeRegistries.Keys.CONDITION_CODECS, MOD_ID);
+        public static final net.neoforged.neoforge.registries.DeferredHolder<com.mojang.serialization.MapCodec<? extends net.neoforged.neoforge.common.conditions.ICondition>, com.mojang.serialization.MapCodec<com.maxenonyme.createsubmarine.submarine.system.ConfigCondition>> CONFIG_CONDITION = CONDITION_CODECS
+                        .register("config_enabled", () -> com.maxenonyme.createsubmarine.submarine.system.ConfigCondition.CODEC);
         public static final DeferredRegister<net.minecraft.world.level.material.Fluid> FLUIDS = DeferredRegister
                         .create(Registries.FLUID, MOD_ID);
 
@@ -243,7 +247,7 @@ public class CreateSubmarine {
 
         public static final Supplier<Block> SUBMARINE_PROPELLER = BLOCKS.register("submarine_propeller",
                         () -> new com.maxenonyme.createsubmarine.submarine.block.propeller.submarine_propeller.SubmarinePropellerBlock(
-                                        BlockBehaviour.Properties.ofFullCopy(Blocks.ANDESITE).sound(net.minecraft.world.level.block.SoundType.WOOD)));
+                                        BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK)));
         public static final Supplier<Item> SUBMARINE_PROPELLER_ITEM = ITEMS.register("submarine_propeller",
                         () -> new net.minecraft.world.item.BlockItem(SUBMARINE_PROPELLER.get(), new Item.Properties()));
         public static final Supplier<BlockEntityType<com.maxenonyme.createsubmarine.submarine.block.propeller.submarine_propeller.SubmarinePropellerBlockEntity>> SUBMARINE_PROPELLER_BE = BLOCK_ENTITIES.register(
@@ -275,6 +279,7 @@ public class CreateSubmarine {
                 FLUIDS.register(modEventBus);
                 MENUS.register(modEventBus);
                 DENSITY_FUNCTIONS.register(modEventBus);
+                CONDITION_CODECS.register(modEventBus);
                 modEventBus.addListener(this::onCommonSetup);
                 modEventBus.addListener(this::onConfigLoaded);
                 modEventBus.addListener(this::registerPayloads);

@@ -1,53 +1,64 @@
 package com.maxenonyme.createsubmarine.submarine.client;
 
 import com.maxenonyme.createsubmarine.CreateSubmarine;
-import com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.Util;
+import net.minecraft.client.gui.screens.TitleScreen;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.client.event.ScreenEvent;
-import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
+import com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig;
 
 import java.util.List;
 
-public class DeepSeasWelcomeScreen extends Screen {
+public class LithostitchedMissingScreen extends Screen {
     private static final int PANEL_BG = 0xE6101A22;
-    private static final int PANEL_ACCENT = 0xFF3FB6E0;
-    private static final int PANEL_BORDER = 0xFF2C5566;
-    private static final int TITLE_COLOR = 0xFF8FE0FF;
-    private static final int BODY_COLOR = 0xFFCEDDE4;
+    private static final int PANEL_ACCENT = 0xFFE0B63F;
+    private static final int PANEL_BORDER = 0xFF66552C;
+    private static final int TITLE_COLOR = 0xFFFFE08F;
+    private static final int BODY_COLOR = 0xFFE4DCCE;
 
-    private final Screen titleScreen;
+    private final Screen previousScreen;
 
     private List<FormattedCharSequence> messageLines = List.of();
     private int panelX, panelY, panelW, panelH;
 
-    public DeepSeasWelcomeScreen(Screen titleScreen) {
-        super(Component.translatable("create_submarine.welcome.title"));
-        this.titleScreen = titleScreen;
+    public LithostitchedMissingScreen(Screen previousScreen) {
+        super(Component.translatable("create_submarine.lithostitched_missing.title"));
+        this.previousScreen = previousScreen;
     }
 
     public static void onScreenOpening(ScreenEvent.Opening event) {
         if (!(event.getNewScreen() instanceof TitleScreen menu)) {
             return;
         }
-        if (!SubmarineConfig.SPEC.isLoaded() || com.maxenonyme.createsubmarine.submarine.config.SubmarineClientState.hasSeenWelcomeScreen()) {
+        if (!SubmarineConfig.SPEC.isLoaded()) {
             return;
         }
-        if (SubmarineConfig.DISABLE_STARTUP_SCREENS.get()) {
+
+        if (ModList.get().isLoaded("lithostitched")) {
             return;
         }
-        event.setNewScreen(new DeepSeasWelcomeScreen(menu));
+
+        if (SubmarineConfig.ENABLE_DEEPER_OCEANS.get() || SubmarineConfig.ENABLE_ABYSS_DIMENSION.get()) {
+
+            SubmarineConfig.ENABLE_DEEPER_OCEANS.set(false);
+            SubmarineConfig.ENABLE_ABYSS_DIMENSION.set(false);
+            SubmarineConfig.SPEC.save();
+
+            if (!com.maxenonyme.createsubmarine.submarine.config.SubmarineClientState.hasSeenLithostitchedScreen()) {
+                event.setNewScreen(new LithostitchedMissingScreen(menu));
+            }
+        }
     }
 
     @Override
     protected void init() {
         panelW = Math.min(360, this.width - 40);
-        messageLines = this.font.split(Component.translatable("create_submarine.welcome.message"), panelW - 28);
+        messageLines = this.font.split(Component.translatable("create_submarine.lithostitched_missing.message"), panelW - 28);
 
         int titleBlock = 12 + this.font.lineHeight + 10;
         int bodyBlock = messageLines.size() * (this.font.lineHeight + 2);
@@ -63,14 +74,14 @@ public class DeepSeasWelcomeScreen extends Screen {
         int buttonsY = panelY + panelH + 14;
 
         addRenderableWidget(Button.builder(
-                        Component.translatable("create_submarine.welcome.configure"),
-                        b -> { acknowledge(); openConfig(); })
+                        Component.translatable("create_submarine.lithostitched_missing.download"),
+                        b -> { Util.getPlatform().openUri("https://modrinth.com/project/XaDC71GB"); })
                 .bounds(centerX - gap / 2 - buttonW, buttonsY, buttonW, 20)
                 .build());
 
         addRenderableWidget(Button.builder(
                         Component.translatable("create_submarine.welcome.dismiss"),
-                        b -> { acknowledge(); this.minecraft.setScreen(titleScreen); })
+                        b -> { this.onClose(); })
                 .bounds(centerX + gap / 2, buttonsY, buttonW, 20)
                 .build());
     }
@@ -93,21 +104,9 @@ public class DeepSeasWelcomeScreen extends Screen {
         }
     }
 
-    private void acknowledge() {
-        com.maxenonyme.createsubmarine.submarine.config.SubmarineClientState.setWelcomeScreenSeen(true);
-    }
-
-    private void openConfig() {
-        ModList.get().getModContainerById(CreateSubmarine.MOD_ID).ifPresentOrElse(
-                mc -> mc.getCustomExtension(IConfigScreenFactory.class).ifPresentOrElse(
-                        factory -> this.minecraft.setScreen(factory.createScreen(mc, titleScreen)),
-                        () -> this.minecraft.setScreen(titleScreen)),
-                () -> this.minecraft.setScreen(titleScreen));
-    }
-
     @Override
     public void onClose() {
-        acknowledge();
-        this.minecraft.setScreen(titleScreen);
+        com.maxenonyme.createsubmarine.submarine.config.SubmarineClientState.setLithostitchedScreenSeen(true);
+        this.minecraft.setScreen(previousScreen);
     }
 }

@@ -23,7 +23,7 @@ config="abyss.mixins.json"
 
 [[dependencies.${mod_id}]]
     modId="lithostitched"
-    type="required"
+    type="optional"
     versionRange="[1.4.8,)"
     ordering="AFTER"
     side="BOTH"
