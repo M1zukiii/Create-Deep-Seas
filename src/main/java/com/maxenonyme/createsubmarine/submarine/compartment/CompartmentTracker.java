@@ -228,6 +228,38 @@ public class CompartmentTracker {
         return findContainingSub(worldPos, SEALED_UNION);
     }
 
+    public static boolean isOccludedExact(Level level, net.minecraft.world.phys.Vec3 exactPos) {
+        return findContainingSubExact(exactPos, VISUAL_UNION) != null;
+    }
+
+    public static boolean isInSealedExact(Level level, net.minecraft.world.phys.Vec3 exactPos) {
+        return findContainingSubExact(exactPos, SEALED_UNION) != null;
+    }
+
+    @Nullable
+    private static UUID findContainingSubExact(net.minecraft.world.phys.Vec3 exactPos, Map<UUID, Set<BlockPos>> blockSetPerSub) {
+        AABB gb = globalBounds;
+        if (gb == null) return null;
+        if (!gb.contains(exactPos.x, exactPos.y, exactPos.z)) return null;
+
+        for (Map.Entry<UUID, SubLevelAccess> e : SUBS.entrySet()) {
+            UUID id = e.getKey();
+            AABB aabb = WORLD_AABB.get(id);
+            if (aabb == null || !aabb.contains(exactPos.x, exactPos.y, exactPos.z)) continue;
+            Set<BlockPos> blocks = blockSetPerSub.get(id);
+            if (blocks == null || blocks.isEmpty()) continue;
+
+            Vector3d local = new Vector3d(exactPos.x, exactPos.y, exactPos.z);
+            try {
+                e.getValue().logicalPose().transformPositionInverse(local);
+            } catch (Exception ex) {
+                continue;
+            }
+            if (blocks.contains(BlockPos.containing(local.x, local.y, local.z))) return id;
+        }
+        return null;
+    }
+
     @Nullable
     private static UUID findContainingSub(BlockPos worldPos, Map<UUID, Set<BlockPos>> blockSetPerSub) {
         AABB gb = globalBounds;

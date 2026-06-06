@@ -1,5 +1,12 @@
 # Changelog
 
+## [June 7, 2026] - Submarine Occlusion & Suffocation Fixes
+
+### Bug Fixes
+- **Airtight Submarine Suffocation:** Fixed a critical bug where players would suffocate and lose bubbles while safely inside an airtight submarine. NeoForge's custom fluid type checks (`getEyeInFluidType`) now correctly recognize the submarine's interior as empty, eliminating server/client desyncs and ghost bubbles.
+- **Corner & Walking Occlusion Glitches:** Replaced the grid-based position checking with exact decimal (`Vec3`) local-space physics. The water occlusion tolerance has been expanded to include the physical boundaries of the hull itself (`VISUAL_UNION`). Players will no longer start drowning when walking on the floor, getting pushed into walls, or standing in tight corners of a heavily pitched submarine.
+- **Swimming Prevention:** The game will now forcefully prevent players from entering swimming mode while inside the submarine's occluded area.
+
 ## [June 6, 2026] - Cookiecutter Sharks, Naval Mines, Steel Cable Power & Propellers
 
 ### New Blocks & Features
