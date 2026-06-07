@@ -92,7 +92,7 @@
   "create_submarine.ponder.poulis.text_2": "Після цього підсекція\nбуде слідувати за тросом, куди б він не йшов.",
   "create_submarine.ponder.steel_cable.header": "Сталевий трос",
   "create_submarine.ponder.steel_cable.text_1": "Істоти можуть ходити по\nнатягнутому сталевому тросу.",
-  "create_submarine.ponder.steel_cable_electrified.header": "Стальний трос — Електрифікація",
+  "create_submarine.ponder.steel_cable_electrified.header": "Сталевий трос — Електрифікація",
   "create_submarine.ponder.steel_cable_electrified.text_1": "За наявності мода на електрику (наприклад,\nCreate: Additions), подайте енергію FE\nнапряму на канатну лебідку, що утримує\nтрос, щоб наелектризувати його.",
   "create_submarine.ponder.water_thruster.header": "Тяга водометного двигуна",
   "create_submarine.ponder.water_thruster.text_1": "Водометний двигун використовує воду під тиском для створення тяги.",
