@@ -57,6 +57,8 @@ public abstract class EntityWaterPhysicsMixin {
     @Unique
     private long createsubmarine$cacheTick = -1L;
     @Unique
+    private double createsubmarine$cacheX, createsubmarine$cacheY, createsubmarine$cacheZ, createsubmarine$cacheEyeY;
+    @Unique
     private boolean createsubmarine$cachedInside = false;
 
     @Unique
@@ -65,9 +67,14 @@ public abstract class EntityWaterPhysicsMixin {
         if (entity.level() == null) return false;
 
         long tick = entity.level().getGameTime();
-        if (tick == createsubmarine$cacheTick) return createsubmarine$cachedInside;
+        double x = entity.getX(), y = entity.getY(), z = entity.getZ(), eyeY = entity.getEyeY();
+        if (tick == createsubmarine$cacheTick
+                && x == createsubmarine$cacheX && y == createsubmarine$cacheY
+                && z == createsubmarine$cacheZ && eyeY == createsubmarine$cacheEyeY) {
+            return createsubmarine$cachedInside;
+        }
 
-        net.minecraft.world.phys.Vec3 eyePos = new net.minecraft.world.phys.Vec3(entity.getX(), entity.getEyeY(), entity.getZ());
+        net.minecraft.world.phys.Vec3 eyePos = new net.minecraft.world.phys.Vec3(x, eyeY, z);
         boolean inside = com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker.isOccludedExact(entity.level(), eyePos);
         if (!inside) {
             net.minecraft.world.phys.Vec3 feetPos = entity.position();
@@ -75,6 +82,10 @@ public abstract class EntityWaterPhysicsMixin {
         }
 
         createsubmarine$cacheTick = tick;
+        createsubmarine$cacheX = x;
+        createsubmarine$cacheY = y;
+        createsubmarine$cacheZ = z;
+        createsubmarine$cacheEyeY = eyeY;
         createsubmarine$cachedInside = inside;
         return inside;
     }
