@@ -48,7 +48,7 @@ public class ClientSteelCableItemHandler {
                 final BlockPos hitBlock = hitResult.getBlockPos();
                 final Vec3 firstPoint = firstBlock.getCenter();
 
-                final double maxRopeRange = 1000000.0;
+                final double maxRopeRange = com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.STEEL_CABLE_MAX_LENGTH.get();
 
                 boolean inRange = Sable.HELPER.distanceSquaredWithSubLevels(level, firstPoint, hitResult.getLocation()) < maxRopeRange * maxRopeRange;
                 boolean valid = RopeItem.isValidRopeAttachment(level, hitBlock) && !hitBlock.equals(firstBlock) && inRange;

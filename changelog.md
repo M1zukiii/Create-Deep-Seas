@@ -1,5 +1,49 @@
 # Changelog
 
+## [June 7, 2026] - Submarine Occlusion & Suffocation Fixes
+
+### Bug Fixes
+- **Airtight Submarine Suffocation:** Fixed a critical bug where players would suffocate and lose bubbles while safely inside an airtight submarine. NeoForge's custom fluid type checks (`getEyeInFluidType`) now correctly recognize the submarine's interior as empty, eliminating server/client desyncs and ghost bubbles.
+- **Corner & Walking Occlusion Glitches:** Replaced the grid-based position checking with exact decimal (`Vec3`) local-space physics. The water occlusion tolerance has been expanded to include the physical boundaries of the hull itself (`VISUAL_UNION`). Players will no longer start drowning when walking on the floor, getting pushed into walls, or standing in tight corners of a heavily pitched submarine.
+- **Swimming Prevention:** The game will now forcefully prevent players from entering swimming mode while inside the submarine's occluded area.
+
+## [June 6, 2026] - Cookiecutter Sharks, Naval Mines, Steel Cable Power & Propellers
+
+### New Blocks & Features
+- **Cookiecutter Shark:** Added a new deep-sea predator with its own model, swim/idle animations and a latch-and-struggle attack behavior.
+- **Underwater Mines:** Added deployable naval mines that float to hold their depth, arm when a ship or creature gets close, and detonate with a large underwater shockwave — camera shake, launched debris, and area damage.
+- **Submarine Propeller:** Added a submarine propeller block with configurable power, client-side bubble/particle wake, and dedicated rendering.
+- **Steel Cables & Electrification:** Added steel cable visuals (connector and winch variants, ponder scenes) and a cable electrification system that carries energy along cables, throws sparks, and shocks entities touching a live line.
+- **Amphistium:** Added the Amphistium, a glowing schooling fish that spawns in the Abyss biome.
+
+### Configuration & User Interface
+- **Update Notifications:** Added an in-game update checker that queries Modrinth and shows a screen when a newer Deep Seas version is available, with the changelog and an "ignore this version" option.
+- **Lithostitched Reminder:** Added a startup screen that prompts you to install the recommended Lithostitched dependency when it is missing.
+- **Item Tooltips:** Mines, propellers and floaters now show descriptive tooltips.
+
+### Bug Fixes
+- **Mines no longer detonate on their own wreckage:** Fixed mines randomly exploding while you broke blocks off them to make them resurface. Each detached chunk becomes a brand-new sublevel spawned right next to the mine, which the proximity trigger mistook for an approaching ship. Debris now inherits the mine's owner at the exact moment of the split and is ignored by the trigger, while real ships still set the mine off.
+- **Mines no longer punch holes in the ocean:** Fixed mine explosions spawning their flying-block debris in a way that silently replaced the block at the target world position, carving air pockets into the surrounding water and terrain. Debris is now thrown without ever touching the parent world.
+- **Mine depth-keeping no longer lags the server:** Replaced the once-per-second full-volume scan each mine ran (to share buoyancy between mines) with live O(1) tracking, preventing TPS drops on large hulls.
+- **Cable energy network spam:** Throttled the block-update packets sent while energy flows through cables (roughly twice a second instead of every tick) to stop network lag.
+- **Update checker visibility:** Marked the update-check result fields `volatile` so the render thread reliably sees the values fetched on the background network thread.
+- **Corrupt client state file:** Loading an empty or corrupt `create_submarine_client_state.json` no longer throws — it now falls back to defaults.
+- **Sturdier cable collisions:** Hardened cable-versus-player collision (sublevel and parent-level handling, null rope-manager guards) and made the winch energy store thread-safe.
+- **Pulley concurrency & speed:** Clamped pulley slide speed to a configurable maximum and deferred block destruction/particles to the server tick to avoid concurrency crashes.
+- **Fog submersion detection:** Reworked the underwater fog check to skip occluded positions and confirm actual water, fixing incorrect fog states.
+- **Reduced particle spam:** Lowered ballast-vent and water-thruster particle counts and frequency.
+- **Double-unregister guard:** Submarine state is now only cleared once the driver claim is actually released, preventing double-unregister glitches when several control blocks are present.
+
+### Under the Hood
+- **Submarine Driver Registry:** Added a registry that grants a single exclusive "driver" block per submarine (hull controller / oxygen diffuser) using priorities and stale-claim eviction.
+- **Mine float guard:** A mine bolted onto a contraption larger than 5 blocks no longer acts as a ballast/floater.
+- **Pressure membership helper:** Centralized the "is this position part of the ship" check (`isWithinShip`) used by the pressure system.
+- **Hull scan budgeting:** Added dynamic scan delay/budget logic to the hull controller to spread out leak scanning.
+- **Access transformer:** Added an access transformer so falling-block debris can be spawned without destructive world side effects.
+
+### Localization
+- **Translations:** Updated Simplified Chinese (`zh_cn`) and Russian (`ru_ru`) translations.
+
 ## [May 30, 2026] - Persistent Lianas, Fruit Reattachment & Configurable Oceans
 
 ### Bug Fixes

@@ -216,7 +216,7 @@ public class CompartmentTracker {
     }
 
     public static boolean isOccluded(Level level, BlockPos worldPos) {
-        return findContainingSub(worldPos, VISUAL_UNION) != null;
+        return findContainingSub(level, worldPos, VISUAL_UNION) != null;
     }
 
     public static boolean isInSealed(Level level, BlockPos worldPos) {
@@ -225,11 +225,45 @@ public class CompartmentTracker {
 
     @Nullable
     public static UUID findSealedSublevel(Level level, BlockPos worldPos) {
-        return findContainingSub(worldPos, SEALED_UNION);
+        return findContainingSub(level, worldPos, SEALED_UNION);
+    }
+
+    public static boolean isOccludedExact(Level level, net.minecraft.world.phys.Vec3 exactPos) {
+        return findContainingSubExact(level, exactPos, VISUAL_UNION) != null;
+    }
+
+    public static boolean isInSealedExact(Level level, net.minecraft.world.phys.Vec3 exactPos) {
+        return findContainingSubExact(level, exactPos, SEALED_UNION) != null;
     }
 
     @Nullable
-    private static UUID findContainingSub(BlockPos worldPos, Map<UUID, Set<BlockPos>> blockSetPerSub) {
+    private static UUID findContainingSubExact(Level level, net.minecraft.world.phys.Vec3 exactPos, Map<UUID, Set<BlockPos>> blockSetPerSub) {
+        AABB gb = globalBounds;
+        if (gb == null) return null;
+        if (!gb.contains(exactPos.x, exactPos.y, exactPos.z)) return null;
+
+        for (Map.Entry<UUID, SubLevelAccess> e : SUBS.entrySet()) {
+            UUID id = e.getKey();
+            SubLevelAccess access = e.getValue();
+            if (access instanceof dev.ryanhcode.sable.sublevel.SubLevel sl && sl.getLevel() != level) continue;
+            AABB aabb = WORLD_AABB.get(id);
+            if (aabb == null || !aabb.contains(exactPos.x, exactPos.y, exactPos.z)) continue;
+            Set<BlockPos> blocks = blockSetPerSub.get(id);
+            if (blocks == null || blocks.isEmpty()) continue;
+
+            Vector3d local = new Vector3d(exactPos.x, exactPos.y, exactPos.z);
+            try {
+                access.logicalPose().transformPositionInverse(local);
+            } catch (Exception ex) {
+                continue;
+            }
+            if (blocks.contains(BlockPos.containing(local.x, local.y, local.z))) return id;
+        }
+        return null;
+    }
+
+    @Nullable
+    private static UUID findContainingSub(Level level, BlockPos worldPos, Map<UUID, Set<BlockPos>> blockSetPerSub) {
         AABB gb = globalBounds;
         if (gb == null) return null;
         double cx = worldPos.getX() + 0.5, cy = worldPos.getY() + 0.5, cz = worldPos.getZ() + 0.5;
@@ -237,6 +271,8 @@ public class CompartmentTracker {
 
         for (Map.Entry<UUID, SubLevelAccess> e : SUBS.entrySet()) {
             UUID id = e.getKey();
+            SubLevelAccess access = e.getValue();
+            if (access instanceof dev.ryanhcode.sable.sublevel.SubLevel sl && sl.getLevel() != level) continue;
             AABB aabb = WORLD_AABB.get(id);
             if (aabb == null || !aabb.contains(cx, cy, cz)) continue;
             Set<BlockPos> blocks = blockSetPerSub.get(id);
@@ -244,7 +280,7 @@ public class CompartmentTracker {
 
             Vector3d local = new Vector3d(cx, cy, cz);
             try {
-                e.getValue().logicalPose().transformPositionInverse(local);
+                access.logicalPose().transformPositionInverse(local);
             } catch (Exception ex) {
                 continue;
             }
@@ -263,7 +299,7 @@ public class CompartmentTracker {
 
     @Nullable
     public static FluidState getLiedFluidState(Level level, BlockPos worldPos) {
-        return isOccluded(level, worldPos) ? Fluids.EMPTY.defaultFluidState() : null;
+        return null;
     }
 
     public static FluidState realFluidState(Level level, BlockPos pos) {

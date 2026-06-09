@@ -120,7 +120,8 @@ public class RopeStrandHolderBehaviorMixin implements SteelCableHolderAccessor {
     @Redirect(method = "createRope", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;closerThan(Lnet/minecraft/core/Position;D)Z"))
     private boolean createsubmarine$redirectCloserThan(net.minecraft.world.phys.Vec3 instance, net.minecraft.core.Position position, double distance) {
         if (this.createsubmarine$isSteelCable) {
-            return true;
+            double maxLength = com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.STEEL_CABLE_MAX_LENGTH.get();
+            return instance.closerThan(position, maxLength);
         }
         return instance.closerThan(position, distance);
     }
