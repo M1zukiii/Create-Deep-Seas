@@ -147,7 +147,7 @@
 
 "create_submarine.command.no_sublevel_container": "未在当前维度找到子层级容器。",
 "create_submarine.command.player_only": "只有玩家可以执行该命令。",
-"create_submarine.command.queue_submarine_lianas": "已排队生成 %s 条长度为 %s 的潜艇藤蔓，将从您当前位置开始生成。",
+"create_submarine.command.queue_submarine_lianas": "已排队生成 %1$s 条长度为 %2$s 的潜艇藤蔓，将从您当前位置开始生成。",
 "create_submarine.command.spawn_liana_failed": "潜艇藤蔓生成失败。",
 "create_submarine.command.spawn_liana_success": "已成功生成一条长度为 %s 的潜艇藤蔓。",
 
