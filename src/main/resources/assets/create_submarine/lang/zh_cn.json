@@ -183,7 +183,7 @@
 "create_submarine.ui.button.update_available": "可用更新：v%s",
 
 "create_submarine.ui.text.implosion_chance": "内爆几率 (0.0 - 1.0)",
-"create_submarine.ui.text.max_water_depth": "最大水深 （方块）",
+"create_submarine.ui.text.max_water_depth": "最大水深（方块）",
 "create_submarine.ui.text.select_block_tip": "选择一个方块以编辑其属性",
 
 "create_submarine.update.button.modrinth": "打开Modrinth",
