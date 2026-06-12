@@ -140,8 +140,6 @@
   "itemGroup.create_submarine": "Create Deep Seas",
   "item.create_submarine.underwater_mine.tooltip.summary": "When attached to a Create Aeronautics contraption,\nthis mine will detonate if entities or\nboats get too close.",
   "create_submarine.configuration.submarinePropellerPowerMultiplier": "Submarine Propeller Power",
-  "create_submarine.configuration.submarinePropellerStressImpact": "Submarine Propeller Stress Impact",
-  "create_submarine.configuration.submarinePropellerStressImpact.tooltip": "Stress impact (SU x RPM) the Submarine Propeller puts on its kinetic network.\nAeronautics' andesite propeller uses 4.0.",
   "create_submarine.configuration.submarinePropellerPowerMultiplier.tooltip": "Multiplier on Submarine Propeller thrust and airflow output.\nLower = weaker propulsion, higher = stronger.",
   "item.create_submarine.submarine_propeller.tooltip.summary": "Excellent in water, but useless outside",
   "create_submarine.lithostitched_missing.title": "Missing Dependency!",

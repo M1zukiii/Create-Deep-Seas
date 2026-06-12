@@ -52,8 +52,11 @@ public final class SodiumWaterOcclusionBridge {
         if (programHandle <= 0)
             return;
         ProgramUniforms u = locations(programHandle);
-        if (!u.hasOcclusion())
+        if (!u.hasOcclusion()) {
+            if (translucentPass)
+                setPixelPerfect(false);
             return;
+        }
 
         if (!translucentPass) {
             GL20.glUniform1f(u.enabled, 0.0f);

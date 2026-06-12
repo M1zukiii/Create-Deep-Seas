@@ -34,13 +34,6 @@ public class SubmarinePropellerBlockEntity extends BasePropellerBlockEntity {
     }
 
     @Override
-    public float calculateStressApplied() {
-        float impact = com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.SUBMARINE_PROPELLER_STRESS_IMPACT.get().floatValue();
-        this.lastStressApplied = impact;
-        return impact;
-    }
-
-    @Override
     public float getRadius() {
         return 1.0f;
     }

@@ -141,8 +141,6 @@
   "item.create_submarine.underwater_mine.tooltip.summary": "Lorsqu'elle est attachée à un engin Create Aeronautics,\ncette mine explose si des entités ou\ndes bateaux s'approchent trop près.",
   "create_submarine.configuration.submarinePropellerPowerMultiplier": "Puissance de l'Hélice Sous-marine",
   "create_submarine.configuration.submarinePropellerPowerMultiplier.tooltip": "Multiplicateur pour la puissance de poussée de l'hélice sous-marine.\nPlus bas = plus faible, plus haut = plus puissant.",
-  "create_submarine.configuration.submarinePropellerStressImpact": "Impact de stress de l'Hélice Sous-marine",
-  "create_submarine.configuration.submarinePropellerStressImpact.tooltip": "Impact de stress (SU x RPM) que l'hélice sous-marine impose à son réseau cinétique.\nL'hélice en andésite d'Aeronautics utilise 4.0.",
   "item.create_submarine.submarine_propeller.tooltip.summary": "Excellent dans l'eau, mais inutile en dehors",
   "create_submarine.lithostitched_missing.title": "Dépendance Manquante !",
   "create_submarine.lithostitched_missing.message": "Une fonctionnalité expérimentale a été activée dans les configurations de Create Deep Seas, cependant celle-ci nécessite la librairie 'Lithostitched' pour fonctionner correctement.\n\nLe jeu ne plantera pas, mais l'option a été automatiquement désactivée. Il faudra la réactiver dans les configurations une fois Lithostitched installé.",

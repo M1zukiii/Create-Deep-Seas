@@ -16,7 +16,6 @@ public class SubmarineConfig {
         public static final ModConfigSpec.DoubleValue BALLAST_TRANSFER_RATE_MULTIPLIER;
         public static final ModConfigSpec.DoubleValue WATER_THRUSTER_POWER_MULTIPLIER;
         public static final ModConfigSpec.DoubleValue SUBMARINE_PROPELLER_POWER_MULTIPLIER;
-        public static final ModConfigSpec.DoubleValue SUBMARINE_PROPELLER_STRESS_IMPACT;
         public static final ModConfigSpec.DoubleValue PULLEY_MAX_SLIDE_SPEED;
         public static final ModConfigSpec.IntValue STEEL_CABLE_MAX_LENGTH;
         public static final ModConfigSpec.BooleanValue ENABLE_PERMANENT_WATER_CULLING_TEST;
@@ -94,10 +93,6 @@ public class SubmarineConfig {
                                 .comment("Multiplier on Submarine Propeller thrust and airflow output.",
                                                 "Lower = weaker propulsion, higher = stronger.")
                                 .defineInRange("submarinePropellerPowerMultiplier", 3.0, 0.1, 50.0);
-                SUBMARINE_PROPELLER_STRESS_IMPACT = builder
-                                .comment("Stress impact (SU x RPM) the Submarine Propeller puts on its kinetic network.",
-                                                "Aeronautics' andesite propeller uses 4.0.")
-                                .defineInRange("submarinePropellerStressImpact", 8.0, 0.0, 256.0);
                 PULLEY_MAX_SLIDE_SPEED = builder
                                 .comment("Maximum sliding speed of a pulley along a steel cable (blocks/s).",
                                                 "Above this speed the pulley starts overheating.")

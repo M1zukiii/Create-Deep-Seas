@@ -408,6 +408,11 @@ public class CreateSubmarine {
                 event.enqueueWork(() -> {
                         HullStrengthConfig.load();
                         registerToSimulatedTab();
+                        com.simibubi.create.api.stress.BlockStressValues.IMPACTS.register(SUBMARINE_PROPELLER.get(), () -> 4.0);
+                        com.simibubi.create.foundation.item.TooltipModifier.REGISTRY.register(
+                                        SUBMARINE_PROPELLER_ITEM.get(),
+                                        com.simibubi.create.foundation.item.TooltipModifier.mapNull(
+                                                        com.simibubi.create.foundation.item.KineticStats.create(SUBMARINE_PROPELLER_ITEM.get())));
                 });
         }
 
