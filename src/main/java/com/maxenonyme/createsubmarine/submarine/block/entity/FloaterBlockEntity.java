@@ -19,7 +19,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class FloaterBlockEntity extends BlockEntity {
+public class FloaterBlockEntity extends BlockEntity implements dev.ryanhcode.sable.api.block.BlockEntitySubLevelActor {
+    private org.joml.Vector3d recordedForceVec = null;
     private static final int PRESSURE_THRESHOLD = 50;
     private static final int PRESSURE_CHECK_INTERVAL = 20;
     private static final int MAX_WATER_SCAN = 200;
@@ -115,7 +116,8 @@ public class FloaterBlockEntity extends BlockEntity {
         double forceToApply = errorY * liftPerFloater * 0.12 * forceMult * submergedRatio;
 
         if (Double.isFinite(forceToApply)) {
-            applyForce(sub, forceToApply);
+            org.joml.Vector3d applied = applyForce(sub, forceToApply);
+            if (applied != null) be.recordedForceVec = applied;
         }
     }
 
@@ -163,10 +165,10 @@ public class FloaterBlockEntity extends BlockEntity {
         }
     }
 
-    private static void applyForce(SubLevelAccess sub, double forceY) {
+    private static org.joml.Vector3d applyForce(SubLevelAccess sub, double forceY) {
         Object handle = SablePhysicsHelper.getHandle(sub);
         if (handle == null)
-            return;
+            return null;
         SablePhysicsHelper.wakeUp(handle);
 
         double velY = 0;
@@ -180,5 +182,78 @@ public class FloaterBlockEntity extends BlockEntity {
         sub.logicalPose().orientation().conjugate(new org.joml.Quaterniond()).transform(forceVec);
 
         SablePhysicsHelper.applyLinearImpulse(handle, forceVec);
+        return forceVec;
+    }
+
+    private java.util.List<FloaterBlockEntity> cachedCluster;
+    private long clusterCacheTick = -1;
+
+    public java.util.List<FloaterBlockEntity> getCluster() {
+        if (level == null) return java.util.List.of(this);
+        long tick = level.getGameTime();
+        if (cachedCluster != null && tick - clusterCacheTick < 5) return cachedCluster;
+        java.util.List<FloaterBlockEntity> cluster = new java.util.ArrayList<>();
+        java.util.Set<BlockPos> visited = new java.util.HashSet<>();
+        java.util.Queue<BlockPos> queue = new java.util.LinkedList<>();
+        queue.add(worldPosition);
+        visited.add(worldPosition);
+        while (!queue.isEmpty()) {
+            BlockPos current = queue.poll();
+            if (level.getBlockEntity(current) instanceof FloaterBlockEntity be) {
+                cluster.add(be);
+                for (net.minecraft.core.Direction dir : net.minecraft.core.Direction.values()) {
+                    BlockPos next = current.relative(dir);
+                    if (!visited.contains(next) && level.getBlockState(next).getBlock() == CreateSubmarine.FLOATER.get()) {
+                        visited.add(next);
+                        queue.add(next);
+                    }
+                }
+            }
+        }
+        cachedCluster = cluster;
+        clusterCacheTick = tick;
+        return cluster;
+    }
+
+    private FloaterBlockEntity getMaster() {
+        java.util.List<FloaterBlockEntity> cluster = getCluster();
+        FloaterBlockEntity master = this;
+        for (FloaterBlockEntity be : cluster) {
+            if (be.worldPosition.compareTo(master.worldPosition) < 0) {
+                master = be;
+            }
+        }
+        return master;
+    }
+
+    @Override
+    public void sable$physicsTick(dev.ryanhcode.sable.sublevel.ServerSubLevel sub, dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle handle, double timeStep) {
+        if (this.recordedForceVec == null) return;
+        if (this != getMaster()) return;
+
+        if (sub.isTrackingIndividualQueuedForces()) {
+            dev.ryanhcode.sable.api.physics.force.QueuedForceGroup forceGroup = sub.getOrCreateQueuedForceGroup(com.maxenonyme.createsubmarine.CreateSubmarine.FLOATER_FORCE_GROUP.get());
+            org.joml.Vector3d totalForce = new org.joml.Vector3d();
+            org.joml.Vector3d centerPos = new org.joml.Vector3d();
+            java.util.List<FloaterBlockEntity> cluster = getCluster();
+            int count = 0;
+            for (FloaterBlockEntity be : cluster) {
+                if (be.recordedForceVec != null) {
+                    totalForce.add(be.recordedForceVec);
+                    centerPos.add(be.worldPosition.getX() + 0.5, be.worldPosition.getY() + 0.5, be.worldPosition.getZ() + 0.5);
+                    be.recordedForceVec = null;
+                    count++;
+                }
+            }
+            if (count > 0) {
+                centerPos.div(count);
+                org.joml.Vector3d recordVec = totalForce.mul(20.0 * timeStep);
+                forceGroup.recordPointForce(centerPos, recordVec);
+            }
+        } else {
+            for (FloaterBlockEntity be : getCluster()) {
+                be.recordedForceVec = null;
+            }
+        }
     }
 }

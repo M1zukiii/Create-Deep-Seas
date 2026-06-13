@@ -16,7 +16,12 @@ public abstract class LevelChunkMixin {
     }
     @Inject(method = "setBlockState", at = @At("RETURN"))
     private void createsubmarine$onSetBlockState(BlockPos pos, BlockState state, boolean isMoving, CallbackInfoReturnable<BlockState> cir) {
-        if (cir.getReturnValue() == null) return;
-        CompartmentTracker.onPlotBlockChanged(((LevelChunk) (Object) this).getLevel(), pos);
+        BlockState old = cir.getReturnValue();
+        if (old == null) return;
+        net.minecraft.world.level.Level level = ((LevelChunk) (Object) this).getLevel();
+        CompartmentTracker.onPlotBlockChanged(level, pos);
+        if (!level.isClientSide && old.getBlock() != state.getBlock()) {
+            com.maxenonyme.createsubmarine.submarine.system.SubmarinePressureSystem.onPlotBlockReplaced(level, pos);
+        }
     }
 }

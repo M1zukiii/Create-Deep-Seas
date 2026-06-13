@@ -18,7 +18,7 @@ public class SubmarineConfig {
         public static final ModConfigSpec.DoubleValue SUBMARINE_PROPELLER_POWER_MULTIPLIER;
         public static final ModConfigSpec.DoubleValue PULLEY_MAX_SLIDE_SPEED;
         public static final ModConfigSpec.IntValue STEEL_CABLE_MAX_LENGTH;
-        public static final ModConfigSpec.BooleanValue ENABLE_PERMANENT_WATER_CULLING_TEST;
+        public static final ModConfigSpec.BooleanValue ENABLE_BOAT_WATER_CULLING;
         public static final ModConfigSpec.BooleanValue ENABLE_DEEPER_OCEANS;
         public static final ModConfigSpec.IntValue DEEPER_OCEANS_DEPTH;
         public static final ModConfigSpec.BooleanValue DISABLE_STARTUP_SCREENS;
@@ -103,13 +103,10 @@ public class SubmarineConfig {
                                 .defineInRange("steelCableMaxLength", 1000, 1, 1000000);
                 builder.pop();
 
-                builder.push("experimental");
-                ENABLE_PERMANENT_WATER_CULLING_TEST = builder
-                                .comment("Enable the experimental Permanent Water Culling test for submarines and boats")
-                                .define("enablePermanentWaterCullingTest", false);
-                builder.pop();
-
                 builder.push("client");
+                ENABLE_BOAT_WATER_CULLING = builder
+                                .comment("Hide the ocean surface seen inside floating boats (sub-levels without an oxygen system).")
+                                .define("enableBoatWaterCulling", true);
                 DISABLE_STARTUP_SCREENS = builder
                                 .comment("Disable all Deep Seas startup UI screens (Welcome screen and Update notifications).",
                                                 "Highly recommended to set this to TRUE if you are creating a modpack to avoid annoying your players.")

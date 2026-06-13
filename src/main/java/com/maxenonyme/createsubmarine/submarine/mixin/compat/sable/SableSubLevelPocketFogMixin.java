@@ -35,6 +35,10 @@ public abstract class SableSubLevelPocketFogMixin {
     @Inject(method = "renderChunkedSubLevel", at = @At("HEAD"), remap = false, require = 0)
     private void createsubmarine$defogBegin(RenderType layer, ShaderInstance shader, Matrix4f modelView,
             double camX, double camY, double camZ, CallbackInfo ci) {
+        if (this.subLevel.getLevel() != null) {
+            com.maxenonyme.createsubmarine.submarine.client.renderer.SubLevelRenderPoseCapture.capture(
+                    this.subLevel.getUniqueId(), this.subLevel.renderPose());
+        }
         createsubmarine$savedFogColor = null;
         if (shader.FOG_COLOR == null) return;
         if (this.subLevel.getLevel() == null) return;

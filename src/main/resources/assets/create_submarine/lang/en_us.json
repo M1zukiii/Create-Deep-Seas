@@ -7,6 +7,7 @@
   "block.create_submarine.floater": "Floater",
   "block.create_submarine.glass_pressurizer": "Pressurized Glass",
   "block.create_submarine.arresting_hook": "Arresting Hook",
+  "item.create_submarine.arresting_hook.tooltip.wip": "Work in progress, don't use!",
   "block.create_submarine.industrial_alarm": "Industrial Alarm",
   "block.create_submarine.iron_pressurizer": "Iron Pressurized Glass",
   "block.create_submarine.oxygene_diffuser": "Oxygen Diffuser",
@@ -35,8 +36,8 @@
   "create_submarine.configuration.disableStartupScreens.tooltip": "Disable all Deep Seas startup UI screens (Welcome screen and Update notifications). Highly recommended to set this to TRUE if you are creating a modpack.",
   "create_submarine.configuration.enableDeeperOceans": "Deeper Oceans",
   "create_submarine.configuration.enableDeeperOceans.tooltip": "Deepen the ocean floor below vanilla. Off = vanilla ocean depth. Set the amount with Deeper Oceans Depth.",
-  "create_submarine.configuration.enablePermanentWaterCullingTest": "Permanent Water Culling Test",
-  "create_submarine.configuration.enablePermanentWaterCullingTest.tooltip": "Enable the experimental Permanent Water Culling test for submarines and boats.",
+  "create_submarine.configuration.enableBoatWaterCulling": "Boat Water Culling",
+  "create_submarine.configuration.enableBoatWaterCulling.tooltip": "Hide the ocean surface seen inside floating boats (sub-levels without an oxygen system).",
   "create_submarine.configuration.experimental": "Experimental",
   "create_submarine.configuration.experimental.button": "Experimental",
   "create_submarine.configuration.experimental.tooltip": "Experimental features, may break.",
@@ -145,5 +146,9 @@
   "create_submarine.lithostitched_missing.title": "Missing Dependency!",
   "create_submarine.lithostitched_missing.message": "An experimental feature has been enabled in the Create Deep Seas configuration, however this requires the 'Lithostitched' library to function properly.\n\nThe game will not crash, but the option has been automatically disabled. You will need to re-enable it in the configuration once Lithostitched is installed.",
   "create_submarine.lithostitched_missing.download": "Download Lithostitched",
-  "block.create_submarine.rudder": "Rudder"
+  "block.create_submarine.rudder": "Rudder",
+  "create_submarine.force_group.ballast": "Ballast",
+  "create_submarine.force_group.ballast.description": "Forces exerted by ballast tanks",
+  "create_submarine.force_group.floater": "Floater",
+  "create_submarine.force_group.floater.description": "Forces exerted by floaters"
 }

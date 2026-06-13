@@ -31,7 +31,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
-public class BallastTankBlockEntity extends BlockEntity implements IHaveGoggleInformation {
+public class BallastTankBlockEntity extends BlockEntity implements IHaveGoggleInformation, dev.ryanhcode.sable.api.block.BlockEntitySubLevelActor {
+    private org.joml.Vector3d recordedForceVec = null;
     private static final int    CAPACITY        = 8000;
     private static final double MAX_ACCEL_LIMIT = 0.2;
     private static long lastClearTick = -1;
@@ -287,6 +288,10 @@ public class BallastTankBlockEntity extends BlockEntity implements IHaveGoggleIn
 
         if (Double.isFinite(forceToApply)) {
             applyForce(sub, forceToApply);
+            double finalForce = (Math.abs(currentVelY) < 0.01 && forceToApply < 0) ? forceToApply * 0.1 : forceToApply;
+            org.joml.Vector3d forceVec = new org.joml.Vector3d(0, finalForce, 0);
+            sub.logicalPose().orientation().conjugate(new org.joml.Quaterniond()).transform(forceVec);
+            be.recordedForceVec = forceVec;
         }
 
         if (subId != null && !TICK_TOTAL_FORCE.containsKey(subId)) {
@@ -393,5 +398,46 @@ public class BallastTankBlockEntity extends BlockEntity implements IHaveGoggleIn
     public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         tank.readFromNBT(registries, tag.getCompound("Tank"));
+    }
+    private BallastTankBlockEntity getMaster() {
+        List<BallastTankBlockEntity> cluster = getCluster();
+        BallastTankBlockEntity master = this;
+        for (BallastTankBlockEntity be : cluster) {
+            if (be.worldPosition.compareTo(master.worldPosition) < 0) {
+                master = be;
+            }
+        }
+        return master;
+    }
+
+    @Override
+    public void sable$physicsTick(dev.ryanhcode.sable.sublevel.ServerSubLevel sub, dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle handle, double timeStep) {
+        if (this.recordedForceVec == null) return;
+        if (this != getMaster()) return;
+
+        if (sub.isTrackingIndividualQueuedForces()) {
+            dev.ryanhcode.sable.api.physics.force.QueuedForceGroup forceGroup = sub.getOrCreateQueuedForceGroup(com.maxenonyme.createsubmarine.CreateSubmarine.BALLAST_FORCE_GROUP.get());
+            org.joml.Vector3d totalForce = new org.joml.Vector3d();
+            org.joml.Vector3d centerPos = new org.joml.Vector3d();
+            List<BallastTankBlockEntity> cluster = getCluster();
+            int count = 0;
+            for (BallastTankBlockEntity be : cluster) {
+                if (be.recordedForceVec != null) {
+                    totalForce.add(be.recordedForceVec);
+                    centerPos.add(be.worldPosition.getX() + 0.5, be.worldPosition.getY() + 0.5, be.worldPosition.getZ() + 0.5);
+                    be.recordedForceVec = null;
+                    count++;
+                }
+            }
+            if (count > 0) {
+                centerPos.div(count);
+                org.joml.Vector3d recordVec = totalForce.mul(20.0 * timeStep);
+                forceGroup.recordPointForce(centerPos, recordVec);
+            }
+        } else {
+            for (BallastTankBlockEntity be : getCluster()) {
+                be.recordedForceVec = null;
+            }
+        }
     }
 }

@@ -7,6 +7,7 @@
   "block.create_submarine.floater": "Flotteur",
   "block.create_submarine.glass_pressurizer": "Vitre Pressurisée",
   "block.create_submarine.arresting_hook": "Crochet d'appontage",
+  "item.create_submarine.arresting_hook.tooltip.wip": "En cours de développement, ne pas utiliser !",
   "block.create_submarine.industrial_alarm": "Alarme Industrielle",
   "block.create_submarine.iron_pressurizer": "Vitre Pressurisée en Fer",
   "block.create_submarine.oxygene_diffuser": "Diffuseur d'Oxygène",
@@ -35,8 +36,8 @@
   "create_submarine.configuration.disableStartupScreens.tooltip": "Désactive tous les écrans d'interface au lancement de Deep Seas (Écran de bienvenue et notifications de mise à jour). Fortement recommandé de régler sur VRAI pour les créateurs de modpacks.",
   "create_submarine.configuration.enableDeeperOceans": "Océans plus profonds",
   "create_submarine.configuration.enableDeeperOceans.tooltip": "Approfondit le fond océanique sous le niveau vanilla. Désactivé = profondeur vanilla. Règle la valeur avec Profondeur des océans.",
-  "create_submarine.configuration.enablePermanentWaterCullingTest": "Test d'Occlusion d'Eau",
-  "create_submarine.configuration.enablePermanentWaterCullingTest.tooltip": "Active le test expérimental d'occlusion d'eau permanente pour les sous-marins et les bateaux.",
+  "create_submarine.configuration.enableBoatWaterCulling": "Occlusion d'eau des bateaux",
+  "create_submarine.configuration.enableBoatWaterCulling.tooltip": "Masque la surface de l'océan visible à l'intérieur des bateaux flottants (sous-niveaux sans système d'oxygène).",
   "create_submarine.configuration.experimental": "Expérimental",
   "create_submarine.configuration.experimental.button": "Expérimental",
   "create_submarine.configuration.experimental.tooltip": "Fonctionnalités expérimentales, peuvent casser.",
@@ -145,5 +146,9 @@
   "create_submarine.lithostitched_missing.title": "Dépendance Manquante !",
   "create_submarine.lithostitched_missing.message": "Une fonctionnalité expérimentale a été activée dans les configurations de Create Deep Seas, cependant celle-ci nécessite la librairie 'Lithostitched' pour fonctionner correctement.\n\nLe jeu ne plantera pas, mais l'option a été automatiquement désactivée. Il faudra la réactiver dans les configurations une fois Lithostitched installé.",
   "create_submarine.lithostitched_missing.download": "Télécharger Lithostitched",
-  "block.create_submarine.rudder": "Gouvernail"
+  "block.create_submarine.rudder": "Gouvernail",
+  "create_submarine.force_group.ballast": "Ballast",
+  "create_submarine.force_group.ballast.description": "Forces exercées par les ballasts",
+  "create_submarine.force_group.floater": "Flotteur",
+  "create_submarine.force_group.floater.description": "Forces exercées par les flotteurs"
 }

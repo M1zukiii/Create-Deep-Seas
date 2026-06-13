@@ -1,6 +1,7 @@
 package com.maxenonyme.createsubmarine.submarine.client.renderer;
 
 import com.maxenonyme.createsubmarine.submarine.mixin.compat.WaterOcclusionRendererAccessor;
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.ryanhcode.sable.SableClient;
 import dev.ryanhcode.sable.render.water_occlusion.WaterOcclusionRenderer;
 import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
@@ -86,11 +87,11 @@ public final class SodiumWaterOcclusionBridge {
                 return;
             }
 
-            GL13.glActiveTexture(GL13.GL_TEXTURE0 + CLOSE_TEXTURE_UNIT);
-            GL13.glBindTexture(GL13.GL_TEXTURE_2D, closeDepth.getId());
-            GL13.glActiveTexture(GL13.GL_TEXTURE0 + FAR_TEXTURE_UNIT);
-            GL13.glBindTexture(GL13.GL_TEXTURE_2D, farDepth.getId());
-            GL13.glActiveTexture(GL13.GL_TEXTURE0);
+            RenderSystem.activeTexture(GL13.GL_TEXTURE0 + CLOSE_TEXTURE_UNIT);
+            RenderSystem.bindTexture(closeDepth.getId());
+            RenderSystem.activeTexture(GL13.GL_TEXTURE0 + FAR_TEXTURE_UNIT);
+            RenderSystem.bindTexture(farDepth.getId());
+            RenderSystem.activeTexture(GL13.GL_TEXTURE0);
 
             if (u.closeSampler >= 0)
                 GL20.glUniform1i(u.closeSampler, CLOSE_TEXTURE_UNIT);

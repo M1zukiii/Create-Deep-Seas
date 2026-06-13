@@ -29,11 +29,31 @@ import com.maxenonyme.createsubmarine.submarine.effect.SuffocationEffect;
 import com.maxenonyme.createsubmarine.submarine.system.*;
 import com.maxenonyme.createsubmarine.submarine.config.HullStrengthConfig;
 import com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig;
+import net.minecraft.network.chat.Component;
+import foundry.veil.platform.registry.RegistrationProvider;
+import foundry.veil.platform.registry.RegistryObject;
+import dev.ryanhcode.sable.api.physics.force.ForceGroup;
+import dev.ryanhcode.sable.api.physics.force.ForceGroups;
 import net.neoforged.fml.config.ModConfig;
 
 @Mod(CreateSubmarine.MOD_ID)
 public class CreateSubmarine {
         public static final String MOD_ID = "create_submarine";
+        public static final DeferredRegister<ForceGroup> FORCE_GROUP_REGISTER = DeferredRegister.create(ForceGroups.REGISTRY_KEY, MOD_ID);
+        public static final Supplier<ForceGroup> BALLAST_FORCE_GROUP = FORCE_GROUP_REGISTER.register(
+                        "ballast",
+                        () -> new ForceGroup(
+                                        Component.translatable("create_submarine.force_group.ballast"),
+                                        Component.translatable("create_submarine.force_group.ballast.description"),
+                                        0x00008B,
+                                        true));
+        public static final Supplier<ForceGroup> FLOATER_FORCE_GROUP = FORCE_GROUP_REGISTER.register(
+                        "floater",
+                        () -> new ForceGroup(
+                                        Component.translatable("create_submarine.force_group.floater"),
+                                        Component.translatable("create_submarine.force_group.floater.description"),
+                                        0xADD8E6,
+                                        true));
         public static final Logger LOGGER = LogUtils.getLogger();
         public static final boolean DISABLE_WATER_OCCLUSION = false;
         public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(BuiltInRegistries.BLOCK, MOD_ID);
@@ -239,7 +259,7 @@ public class CreateSubmarine {
                         () -> new com.maxenonyme.createsubmarine.submarine.block.ArrestingHookBlock(
                                         BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).noOcclusion()));
         public static final Supplier<Item> ARRESTING_HOOK_ITEM = ITEMS.register("arresting_hook",
-                        () -> new net.minecraft.world.item.BlockItem(ARRESTING_HOOK.get(), new Item.Properties()));
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.ArrestingHookItem(ARRESTING_HOOK.get(), new Item.Properties()));
         public static final Supplier<BlockEntityType<com.maxenonyme.createsubmarine.submarine.block.entity.ArrestingHookBlockEntity>> ARRESTING_HOOK_BE = BLOCK_ENTITIES.register(
                         "arresting_hook",
                         () -> BlockEntityType.Builder.of(
@@ -266,6 +286,7 @@ public class CreateSubmarine {
         public CreateSubmarine(IEventBus modEventBus, ModContainer modContainer) {
                 modContainer.registerConfig(ModConfig.Type.COMMON, SubmarineConfig.SPEC);
                 BLOCKS.register(modEventBus);
+                FORCE_GROUP_REGISTER.register(modEventBus);
                 ITEMS.register(modEventBus);
                 BLOCK_ENTITIES.register(modEventBus);
                 SOUNDS.register(modEventBus);

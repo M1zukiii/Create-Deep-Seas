@@ -43,7 +43,8 @@
     "compat.sable.VanillaSubLevelRenderDispatcherMixin",
     "compat.sable.SableWaterOcclusionPreProcessorMixin",
     "compat.sable.SableSnapshotPacketMixin",
-    "compat.sable.SableStartTrackingPacketMixin"
+    "compat.sable.SableStartTrackingPacketMixin",
+    "compat.simulated.DiagramScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1
