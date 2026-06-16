@@ -23,10 +23,11 @@ public class BarometerDisplaySource extends SingleLineDisplaySource {
         int weakest = be.syncedWeakest;
 
         if (depth <= 0) {
-            return Component.translatable("create_submarine.gui.goggles.barometer.no_pressure").withStyle(ChatFormatting.GRAY);
+            return Component.translatable("create_submarine.gui.goggles.barometer.no_pressure")
+                    .withStyle(ChatFormatting.GRAY);
         }
 
-        int state = 1; // 1 = acceptable, 2 = warning, 3 = critical
+        int state = 1;
         if (weakest != -1) {
             if (depth > weakest) {
                 state = 3;
@@ -38,9 +39,15 @@ public class BarometerDisplaySource extends SingleLineDisplaySource {
         int mode = context.sourceConfig().getInt("DisplayMode");
 
         MutableComponent dangerText;
-        if (state == 3) dangerText = Component.translatable("create_submarine.gui.goggles.barometer.critical").withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
-        else if (state == 2) dangerText = Component.translatable("create_submarine.gui.goggles.barometer.warning").withStyle(ChatFormatting.YELLOW);
-        else dangerText = Component.translatable("create_submarine.gui.goggles.barometer.acceptable").withStyle(ChatFormatting.GREEN);
+        if (state == 3)
+            dangerText = Component.translatable("create_submarine.gui.goggles.barometer.critical")
+                    .withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
+        else if (state == 2)
+            dangerText = Component.translatable("create_submarine.gui.goggles.barometer.warning")
+                    .withStyle(ChatFormatting.YELLOW);
+        else
+            dangerText = Component.translatable("create_submarine.gui.goggles.barometer.acceptable")
+                    .withStyle(ChatFormatting.GREEN);
 
         MutableComponent depthText = Component.literal(depth + "m").withStyle(ChatFormatting.AQUA);
 
@@ -49,7 +56,8 @@ public class BarometerDisplaySource extends SingleLineDisplaySource {
         } else if (mode == 1) {
             return dangerText;
         } else {
-            return Component.literal("").append(depthText).append(Component.literal(" - ").withStyle(ChatFormatting.GRAY)).append(dangerText);
+            return Component.literal("").append(depthText)
+                    .append(Component.literal(" - ").withStyle(ChatFormatting.GRAY)).append(dangerText);
         }
     }
 
@@ -59,16 +67,18 @@ public class BarometerDisplaySource extends SingleLineDisplaySource {
     }
 
     @Override
-    public void initConfigurationWidgets(DisplayLinkContext context, ModularGuiLineBuilder builder, boolean isFirstLine) {
+    public void initConfigurationWidgets(DisplayLinkContext context, ModularGuiLineBuilder builder,
+            boolean isFirstLine) {
         super.initConfigurationWidgets(context, builder, isFirstLine);
-        if (isFirstLine) return;
-        
+        if (!isFirstLine)
+            return;
+
         builder.addSelectionScrollInput(0, 100, (si, label) -> {
             si.forOptions(Arrays.asList(
-                Component.translatable("create_submarine.display_source.mode.depth_only"),
-                Component.translatable("create_submarine.display_source.mode.danger_only"),
-                Component.translatable("create_submarine.display_source.mode.both")
-            )).titled(Component.translatable("create_submarine.display_source.mode.title"));
+                    Component.translatable("create_submarine.display_source.mode.depth_only"),
+                    Component.translatable("create_submarine.display_source.mode.danger_only"),
+                    Component.translatable("create_submarine.display_source.mode.both")))
+                    .titled(Component.translatable("create_submarine.display_source.mode.title"));
         }, "DisplayMode");
     }
 
@@ -79,6 +89,6 @@ public class BarometerDisplaySource extends SingleLineDisplaySource {
 
     @Override
     public int getPassiveRefreshTicks() {
-        return 2;
+        return 20;
     }
 }

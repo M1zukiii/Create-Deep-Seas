@@ -252,8 +252,7 @@ public class CompartmentTracker {
             boolean done = CompartmentDetector.stepScan(st, budget);
             if (done) {
                 if (st.chunksMissing) {
-                    // Force quick retry if chunks were missing
-                    // LAST_UPDATE_TICK.put(id, gameTick);
+                    LAST_UPDATE_TICK.put(id, gameTick);
                     STRUCTURE_DIRTY.add(id);
                 } else {
                     CompartmentDetector.Result r = CompartmentDetector.finishScan(st);
