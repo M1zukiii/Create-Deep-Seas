@@ -154,7 +154,7 @@
   "item.create_submarine.underwater_mine.tooltip.summary": "安装在机械动力：航空学的模拟装置上后，\n若有实体或船只\n接近，此水雷将会引爆。",
   "create_submarine.configuration.submarinePropellerPowerMultiplier": "潜艇螺旋桨动力倍率",
   "create_submarine.configuration.submarinePropellerPowerMultiplier.tooltip": "对潜艇螺旋桨推力及气流输出的倍率。\n数值越低，推进力越弱；数值越高，推进力越强。",
-  "item.create_submarine.submarine_propeller.tooltip.summary": "在水中运行极佳，离开水后毫无作用",
+  "item.create_submarine.submarine_propeller.tooltip.summary": "在水中运行极佳，离开水后毫无作用。",
   "create_submarine.lithostitched_missing.title": "缺失依赖项！",
   "create_submarine.lithostitched_missing.message": "已在机械动力：深海配置中启用某项实验性功能，但该功能需要“Lithostitched”库才能正常运行。\n\n游戏不会崩溃，但该选项已被自动禁用。安装 Lithostitched 后，您需要在配置中重新启用该选项。",
   "create_submarine.lithostitched_missing.download": "下载 Lithostitched",
