@@ -235,7 +235,8 @@ public class SubmarinePressureSystem {
         if (depth <= prop.maxWaterDepth())
             return;
 
-        if (RAND.nextFloat() >= prop.implosionChance())
+        float depthMultiplier = (float) depth / Math.max(1, prop.maxWaterDepth());
+        if (RAND.nextFloat() >= prop.implosionChance() * depthMultiplier)
             return;
         BlockPos worldPos = BlockPos.containing(worldVec.x, worldVec.y, worldVec.z);
 

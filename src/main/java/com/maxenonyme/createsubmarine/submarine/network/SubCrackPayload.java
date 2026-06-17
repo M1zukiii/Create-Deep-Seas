@@ -1,7 +1,6 @@
 package com.maxenonyme.createsubmarine.submarine.network;
 
 import com.maxenonyme.createsubmarine.CreateSubmarine;
-import com.maxenonyme.createsubmarine.submarine.client.SubLevelCrackRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -35,7 +34,17 @@ public record SubCrackPayload(UUID subId, BlockPos plotPos, int crackLevel, int 
     }
 
     public static void handle(SubCrackPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> SubLevelCrackRenderer.updateCrack(
-                payload.subId(), payload.plotPos(), payload.crackLevel(), payload.blockId()));
+        context.enqueueWork(() -> {
+            if (net.neoforged.fml.loading.FMLEnvironment.dist == net.neoforged.api.distmarker.Dist.CLIENT) {
+                ClientHandler.handle(payload);
+            }
+        });
+    }
+
+    private static class ClientHandler {
+        private static void handle(SubCrackPayload payload) {
+            com.maxenonyme.createsubmarine.submarine.client.SubLevelCrackRenderer.updateCrack(
+                    payload.subId(), payload.plotPos(), payload.crackLevel(), payload.blockId());
+        }
     }
 }

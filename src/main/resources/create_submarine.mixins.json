@@ -12,6 +12,7 @@
     "RopeConnectorBlockEntityMixin",
     "SmartBlockEntityMixin",
     "EntityWaterPhysicsMixin",
+    "FlowingFluidMixin",
     "compat.SablePhysicsCrashFixMixin",
     "compat.sable.ServerSubLevelMixin",
     "LargeWaterWheelPropulsionMixin",
