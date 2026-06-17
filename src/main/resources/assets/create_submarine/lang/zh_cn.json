@@ -30,7 +30,7 @@
   "create_submarine.configuration.deeperOceansDepth.tooltip": "决定当“更深的海洋”开启时，新的海床比原版深多少方块。警告：较大的值将会导致更多地形生成并渲染，可能严重影响性能。请小心设定。默认值为 10。",
   "create_submarine.configuration.disableImplosion": "禁用内爆伤害",
   "create_submarine.configuration.floaterLift": "浮力筒升力",
-  "create_submarine.configuration.floaterLift.tooltip": "每个浮力筒可向水面推动的质量（约每方块为 1）。\n总浮力会随浮力筒数量增加。",
+  "create_submarine.configuration.floaterLift.tooltip": "每个浮力筒可向水面推动的质量（每个方块大约为 1）。\n总浮力会随浮力筒数量增加。",
   "create_submarine.configuration.disableImplosion.tooltip": "禁用所有由水压导致的船体内爆伤害。",
   "create_submarine.configuration.disableStartupScreens": "禁用启动界面",
   "create_submarine.configuration.disableStartupScreens.tooltip": "禁用本模组的所有启动界面（欢迎界面和更新通知）。强烈建议在制作整合包时启用。",
