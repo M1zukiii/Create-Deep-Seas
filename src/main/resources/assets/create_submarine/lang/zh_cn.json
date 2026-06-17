@@ -1,6 +1,7 @@
 {
   "block.create_submarine.ballast_tank": "潜艇压载水罐",
   "block.create_submarine.ballast_vent": "压载排口",
+  "block.create_submarine.decompression_chamber": "减压舱",
   "block.create_submarine.copper_pressurizer": "铜制耐压玻璃",
   "block.create_submarine.creative_oxygenator": "创造制氧机",
   "block.create_submarine.electrolyzer": "电解器",
@@ -46,6 +47,8 @@
   "create_submarine.configuration.gameplay.tooltip": "一般游戏设置。",
   "create_submarine.configuration.globalMaxDepthCap": "全局最大深度上限",
   "create_submarine.configuration.globalMaxDepthCap.tooltip": "应用于所有非“机械动力：深海”方块的 maxWaterDepth 上限。各方块数值储存在 config/submarine_hull.json 中。",
+  "item.create_submarine.arresting_hook.tooltip.wip": "开发中请勿使用",
+  "item.create_submarine.decompression_chamber.tooltip.wip": "开发中请勿使用",
   "create_submarine.configuration.hullStrength": "船体强度",
   "create_submarine.configuration.hullStrength.button": "船体强度",
   "create_submarine.configuration.hullStrength.tooltip": "船体对于水压的抗性。",
@@ -186,4 +189,6 @@
   "create_submarine.display_source.mode.depth_only": "仅显示深度",
   "create_submarine.display_source.mode.danger_only": "仅显示危险",
   "create_submarine.display_source.mode.both": "深度与危险"
+  "create_submarine.ponder.tag.deep_seas": "深海组件",
+  "create_submarine.ponder.tag.deep_seas.description": "潜艇工程与机械"
 }
