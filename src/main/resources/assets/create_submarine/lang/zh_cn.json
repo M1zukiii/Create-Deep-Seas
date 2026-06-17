@@ -1,6 +1,7 @@
 {
   "block.create_submarine.ballast_tank": "潜艇压载水罐",
   "block.create_submarine.ballast_vent": "压载排口",
+  "block.create_submarine.decompression_chamber": "减压舱",
   "block.create_submarine.copper_pressurizer": "铜制耐压玻璃",
   "block.create_submarine.creative_oxygenator": "创造制氧机",
   "block.create_submarine.electrolyzer": "电解器",
@@ -18,7 +19,7 @@
   "create_submarine.configuration.ballastForceMultiplier": "压载力倍率",
   "create_submarine.configuration.ballastForceMultiplier.tooltip": "运行时对压载水罐施加垂直推力的倍率。数值越低，下潜和上浮速度越慢；数值越高，响应越灵敏。",
   "create_submarine.configuration.ballastLiftPerTank": "压载水罐升力",
-  "create_submarine.configuration.ballastLiftPerTank.tooltip": "每个压载水罐可推动的潜艇质量（每个方块大约为 1）。\n总浮力会随压载水罐数量增加，因此较重的潜艇需要更多压载水罐。",
+  "create_submarine.configuration.ballastLiftPerTank.tooltip": "每个压载水罐可推动的潜艇质量（每个方块大约为 1）。\n总浮力会随压载水罐数量增加，因此较重的潜艇需要更多压载水罐",
   "create_submarine.configuration.ballastTransferRateMultiplier": "压载注排速率倍率",
   "create_submarine.configuration.ballastTransferRateMultiplier.tooltip": "对压载排口注水/排水传输速率的倍率。数值越低，注水和排水速度越慢；数值越高，注水和排水速度越快。",
   "create_submarine.configuration.ballastVerticalSpeed": "压载升降速度",
@@ -30,7 +31,7 @@
   "create_submarine.configuration.deeperOceansDepth.tooltip": "决定当“更深的海洋”开启时，新的海床比原版深多少方块。警告：较大的值将会导致更多地形生成并渲染，可能严重影响性能。请小心设定。默认值为 10。",
   "create_submarine.configuration.disableImplosion": "禁用内爆伤害",
   "create_submarine.configuration.floaterLift": "浮力筒升力",
-  "create_submarine.configuration.floaterLift.tooltip": "每个浮力筒可向水面推动的质量（每个方块大约为 1）。\n总浮力会随浮力筒数量增加。",
+  "create_submarine.configuration.floaterLift.tooltip": "每个浮力筒可向水面推动的质量（约每方块为 1）。\n总浮力会随浮力筒数量增加。",
   "create_submarine.configuration.disableImplosion.tooltip": "禁用所有由水压导致的船体内爆伤害。",
   "create_submarine.configuration.disableStartupScreens": "禁用启动界面",
   "create_submarine.configuration.disableStartupScreens.tooltip": "禁用本模组的所有启动界面（欢迎界面和更新通知）。强烈建议在制作整合包时启用。",
@@ -46,6 +47,8 @@
   "create_submarine.configuration.gameplay.tooltip": "一般游戏设置。",
   "create_submarine.configuration.globalMaxDepthCap": "全局最大深度上限",
   "create_submarine.configuration.globalMaxDepthCap.tooltip": "应用于所有非“机械动力：深海”方块的 maxWaterDepth 上限。各方块数值储存在 config/submarine_hull.json 中。",
+  "item.create_submarine.arresting_hook.tooltip.wip": "开发中请勿使用",
+  "item.create_submarine.decompression_chamber.tooltip.wip": "开发中请勿使用",
   "create_submarine.configuration.hullStrength": "船体强度",
   "create_submarine.configuration.hullStrength.button": "船体强度",
   "create_submarine.configuration.hullStrength.tooltip": "船体对于水压的抗性。",
@@ -154,7 +157,7 @@
   "item.create_submarine.underwater_mine.tooltip.summary": "安装在机械动力：航空学的模拟装置上后，\n若有实体或船只\n接近，此水雷将会引爆。",
   "create_submarine.configuration.submarinePropellerPowerMultiplier": "潜艇螺旋桨动力倍率",
   "create_submarine.configuration.submarinePropellerPowerMultiplier.tooltip": "对潜艇螺旋桨推力及气流输出的倍率。\n数值越低，推进力越弱；数值越高，推进力越强。",
-  "item.create_submarine.submarine_propeller.tooltip.summary": "在水中运行极佳，离开水后毫无作用。",
+  "item.create_submarine.submarine_propeller.tooltip.summary": "在水中运行极佳，离开水后毫无作用",
   "create_submarine.lithostitched_missing.title": "缺失依赖项！",
   "create_submarine.lithostitched_missing.message": "已在机械动力：深海配置中启用某项实验性功能，但该功能需要“Lithostitched”库才能正常运行。\n\n游戏不会崩溃，但该选项已被自动禁用。安装 Lithostitched 后，您需要在配置中重新启用该选项。",
   "create_submarine.lithostitched_missing.download": "下载 Lithostitched",
@@ -186,4 +189,6 @@
   "create_submarine.display_source.mode.depth_only": "仅显示深度",
   "create_submarine.display_source.mode.danger_only": "仅显示危险",
   "create_submarine.display_source.mode.both": "深度与危险"
+  "create_submarine.ponder.tag.deep_seas": "深海组件",
+  "create_submarine.ponder.tag.deep_seas.description": "潜艇工程与机械"
 }
