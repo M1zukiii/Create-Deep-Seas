@@ -57,7 +57,6 @@ public class CreateSubmarine {
         public static final Logger LOGGER = LogUtils.getLogger();
         public static final boolean DISABLE_WATER_OCCLUSION = false;
         public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(BuiltInRegistries.BLOCK, MOD_ID);
-        public static java.util.function.BiPredicate<java.util.UUID, net.minecraft.core.BlockPos> clientCrackCheck = (id, pos) -> false;
         public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(BuiltInRegistries.ITEM, MOD_ID);
         public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister
                         .create(BuiltInRegistries.BLOCK_ENTITY_TYPE, MOD_ID);

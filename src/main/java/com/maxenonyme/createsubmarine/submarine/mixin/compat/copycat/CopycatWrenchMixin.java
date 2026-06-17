@@ -43,7 +43,7 @@ public interface CopycatWrenchMixin {
 
             if (level.isClientSide()) {
                 pressurized = sub.logicalPose().position().y() < 62;
-                hasCrack = com.maxenonyme.createsubmarine.CreateSubmarine.clientCrackCheck.test(subId, plotPos);
+                hasCrack = com.maxenonyme.createsubmarine.submarine.util.CrackUtil.hasCrack(subId, plotPos);
             } else {
                 pressurized = com.maxenonyme.createsubmarine.submarine.system.SubmarinePressureSystem.isPressurized(subId);
                 java.util.Map<net.minecraft.core.BlockPos, Integer> cracks = com.maxenonyme.createsubmarine.submarine.system.SubmarinePressureSystem.getAllCracks().get(subId);
