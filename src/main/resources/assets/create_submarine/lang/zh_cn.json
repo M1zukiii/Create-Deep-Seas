@@ -188,7 +188,7 @@
   "create_submarine.display_source.mode.title": "显示模式",
   "create_submarine.display_source.mode.depth_only": "仅显示深度",
   "create_submarine.display_source.mode.danger_only": "仅显示危险",
-  "create_submarine.display_source.mode.both": "深度与危险"
+  "create_submarine.display_source.mode.both": "深度与危险",
   "create_submarine.ponder.tag.deep_seas": "深海组件",
   "create_submarine.ponder.tag.deep_seas.description": "潜艇工程与机械"
 }
