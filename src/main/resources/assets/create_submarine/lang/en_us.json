@@ -1,6 +1,7 @@
 {
   "block.create_submarine.ballast_tank": "Submarine Ballast Tank",
   "block.create_submarine.ballast_vent": "Ballast Vent",
+  "block.create_submarine.decompression_chamber": "Decompression Chamber",
   "block.create_submarine.copper_pressurizer": "Copper Pressurized Glass",
   "block.create_submarine.creative_oxygenator": "Creative Oxygenator",
   "block.create_submarine.electrolyzer": "Electrolyzer",
@@ -46,6 +47,8 @@
   "create_submarine.configuration.gameplay.tooltip": "General gameplay settings.",
   "create_submarine.configuration.globalMaxDepthCap": "Global max depth cap",
   "create_submarine.configuration.globalMaxDepthCap.tooltip": "Cap applied to maxWaterDepth of all non Create Deep Seas blocks. Per-block values are stored in config/submarine_hull.json.",
+  "item.create_submarine.arresting_hook.tooltip.wip": "WIP don't use",
+  "item.create_submarine.decompression_chamber.tooltip.wip": "WIP don't use",
   "create_submarine.configuration.hullStrength": "Hull Strength",
   "create_submarine.configuration.hullStrength.button": "Hull Strength",
   "create_submarine.configuration.hullStrength.tooltip": "Hull resistance to water pressure.",
@@ -185,5 +188,7 @@
   "create_submarine.display_source.mode.title": "Display Mode",
   "create_submarine.display_source.mode.depth_only": "Depth Only",
   "create_submarine.display_source.mode.danger_only": "Danger Only",
-  "create_submarine.display_source.mode.both": "Depth & Danger"
+  "create_submarine.display_source.mode.both": "Depth & Danger",
+  "create_submarine.ponder.tag.deep_seas": "Deep Seas Components",
+  "create_submarine.ponder.tag.deep_seas.description": "Submarine engineering and mechanics"
 }

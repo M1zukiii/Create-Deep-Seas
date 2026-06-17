@@ -1,6 +1,7 @@
 {
   "block.create_submarine.ballast_tank": "Ballast de Sous-Marin",
   "block.create_submarine.ballast_vent": "Évent de Ballast",
+  "block.create_submarine.decompression_chamber": "Chambre de Décompression",
   "block.create_submarine.copper_pressurizer": "Vitre Pressurisée en Cuivre",
   "block.create_submarine.creative_oxygenator": "Oxygénateur Créatif",
   "block.create_submarine.electrolyzer": "Électrolyseur",
@@ -185,5 +186,7 @@
   "create_submarine.display_source.mode.title": "Mode d'Affichage",
   "create_submarine.display_source.mode.depth_only": "Profondeur Uniquement",
   "create_submarine.display_source.mode.danger_only": "Danger Uniquement",
-  "create_submarine.display_source.mode.both": "Profondeur & Danger"
+  "create_submarine.display_source.mode.both": "Profondeur & Danger",
+  "create_submarine.ponder.tag.deep_seas": "Composants des Abysses",
+  "create_submarine.ponder.tag.deep_seas.description": "Ingénierie et mécaniques sous-marines"
 }

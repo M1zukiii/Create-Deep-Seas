@@ -39,7 +39,8 @@ import net.neoforged.fml.config.ModConfig;
 @Mod(CreateSubmarine.MOD_ID)
 public class CreateSubmarine {
         public static final String MOD_ID = "create_submarine";
-        public static final DeferredRegister<ForceGroup> FORCE_GROUP_REGISTER = DeferredRegister.create(ForceGroups.REGISTRY_KEY, MOD_ID);
+        public static final DeferredRegister<ForceGroup> FORCE_GROUP_REGISTER = DeferredRegister
+                        .create(ForceGroups.REGISTRY_KEY, MOD_ID);
         public static final Supplier<ForceGroup> BALLAST_FORCE_GROUP = FORCE_GROUP_REGISTER.register(
                         "ballast",
                         () -> new ForceGroup(
@@ -57,6 +58,8 @@ public class CreateSubmarine {
         public static final Logger LOGGER = LogUtils.getLogger();
         public static final boolean DISABLE_WATER_OCCLUSION = false;
         public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(BuiltInRegistries.BLOCK, MOD_ID);
+        public static java.util.function.Function<dev.ryanhcode.sable.companion.SubLevelAccess, dev.ryanhcode.sable.companion.math.Pose3dc> clientPoseGetter = (
+                        sub) -> sub.logicalPose();
         public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(BuiltInRegistries.ITEM, MOD_ID);
         public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister
                         .create(BuiltInRegistries.BLOCK_ENTITY_TYPE, MOD_ID);
@@ -69,7 +72,8 @@ public class CreateSubmarine {
         public static final DeferredRegister<com.mojang.serialization.MapCodec<? extends net.neoforged.neoforge.common.conditions.ICondition>> CONDITION_CODECS = DeferredRegister
                         .create(net.neoforged.neoforge.registries.NeoForgeRegistries.Keys.CONDITION_CODECS, MOD_ID);
         public static final net.neoforged.neoforge.registries.DeferredHolder<com.mojang.serialization.MapCodec<? extends net.neoforged.neoforge.common.conditions.ICondition>, com.mojang.serialization.MapCodec<com.maxenonyme.createsubmarine.submarine.system.ConfigCondition>> CONFIG_CONDITION = CONDITION_CODECS
-                        .register("config_enabled", () -> com.maxenonyme.createsubmarine.submarine.system.ConfigCondition.CODEC);
+                        .register("config_enabled",
+                                        () -> com.maxenonyme.createsubmarine.submarine.system.ConfigCondition.CODEC);
         public static final DeferredRegister<net.minecraft.world.level.material.Fluid> FLUIDS = DeferredRegister
                         .create(Registries.FLUID, MOD_ID);
 
@@ -130,12 +134,18 @@ public class CreateSubmarine {
                         .register("suffocation",
                                         SuffocationEffect::new);
         public static final Supplier<Block> BAROMETER = BLOCKS.register("barometer",
-                        () -> new com.maxenonyme.createsubmarine.submarine.block.BarometerBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).requiresCorrectToolForDrops().noOcclusion()));
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.BarometerBlock(
+                                        BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK)
+                                                        .requiresCorrectToolForDrops().noOcclusion()));
         public static final Supplier<Item> BAROMETER_ITEM = ITEMS.register("barometer",
-                        () -> new net.minecraft.world.item.BlockItem(BAROMETER.get(), new net.minecraft.world.item.Item.Properties()));
-        public static final Supplier<BlockEntityType<com.maxenonyme.createsubmarine.submarine.block.entity.BarometerBlockEntity>> BAROMETER_BE = BLOCK_ENTITIES.register(
-                        "barometer",
-                        () -> BlockEntityType.Builder.of(com.maxenonyme.createsubmarine.submarine.block.entity.BarometerBlockEntity::new, BAROMETER.get()).build(null));
+                        () -> new net.minecraft.world.item.BlockItem(BAROMETER.get(),
+                                        new net.minecraft.world.item.Item.Properties()));
+        public static final Supplier<BlockEntityType<com.maxenonyme.createsubmarine.submarine.block.entity.BarometerBlockEntity>> BAROMETER_BE = BLOCK_ENTITIES
+                        .register(
+                                        "barometer",
+                                        () -> BlockEntityType.Builder.of(
+                                                        com.maxenonyme.createsubmarine.submarine.block.entity.BarometerBlockEntity::new,
+                                                        BAROMETER.get()).build(null));
         public static final Supplier<Block> CREATIVE_OXYGENATOR = BLOCKS.register("creative_oxygenator",
                         () -> new HullControllerBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OBSIDIAN)));
         public static final Supplier<Item> CREATIVE_OXYGENATOR_ITEM = ITEMS.register("creative_oxygenator",
@@ -163,6 +173,18 @@ public class CreateSubmarine {
         public static final Supplier<BlockEntityType<BallastVentBlockEntity>> BALLAST_VENT_BE = BLOCK_ENTITIES.register(
                         "ballast_vent",
                         () -> BlockEntityType.Builder.of(BallastVentBlockEntity::new, BALLAST_VENT.get()).build(null));
+        public static final Supplier<Block> DECOMPRESSION_CHAMBER = BLOCKS.register("decompression_chamber",
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.DecompressionChamberBlock(
+                                        BlockBehaviour.Properties.ofFullCopy(Blocks.COPPER_BLOCK).noOcclusion()));
+        public static final Supplier<Item> DECOMPRESSION_CHAMBER_ITEM = ITEMS.register("decompression_chamber",
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.DecompressionChamberItem(DECOMPRESSION_CHAMBER.get(),
+                                        new Item.Properties()));
+        public static final Supplier<BlockEntityType<com.maxenonyme.createsubmarine.submarine.block.entity.DecompressionChamberBlockEntity>> DECOMPRESSION_CHAMBER_BE = BLOCK_ENTITIES
+                        .register(
+                                        "decompression_chamber",
+                                        () -> BlockEntityType.Builder.of(
+                                                        com.maxenonyme.createsubmarine.submarine.block.entity.DecompressionChamberBlockEntity::new,
+                                                        DECOMPRESSION_CHAMBER.get()).build(null));
         public static final Supplier<Block> OXYGENE_DIFFUSER = BLOCKS.register("oxygene_diffuser",
                         () -> new OxygeneDiffuserBlock(
                                         BlockBehaviour.Properties.ofFullCopy(Blocks.COPPER_BLOCK).noOcclusion()));
@@ -229,7 +251,8 @@ public class CreateSubmarine {
                                         .isViewBlocking((state, level, pos) -> false)
                                         .isSuffocating((state, level, pos) -> false)));
         public static final Supplier<Item> IRON_PRESSURIZER_ITEM = ITEMS.register("iron_pressurizer",
-                        () -> new com.maxenonyme.createsubmarine.submarine.block.PressurizerItem(IRON_PRESSURIZER.get(), new Item.Properties()));
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.PressurizerItem(IRON_PRESSURIZER.get(),
+                                        new Item.Properties()));
 
         public static final Supplier<Block> COPPER_PRESSURIZER = BLOCKS.register("copper_pressurizer",
                         () -> new TransparentBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.GLASS)
@@ -239,23 +262,28 @@ public class CreateSubmarine {
                                         .isViewBlocking((state, level, pos) -> false)
                                         .isSuffocating((state, level, pos) -> false)));
         public static final Supplier<Item> COPPER_PRESSURIZER_ITEM = ITEMS.register("copper_pressurizer",
-                        () -> new com.maxenonyme.createsubmarine.submarine.block.PressurizerItem(COPPER_PRESSURIZER.get(), new Item.Properties()));
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.PressurizerItem(
+                                        COPPER_PRESSURIZER.get(), new Item.Properties()));
 
         public static final Supplier<Block> FLOATER = BLOCKS.register("floater",
                         () -> new FloaterBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.WHITE_WOOL).noOcclusion()));
         public static final Supplier<Item> FLOATER_ITEM = ITEMS.register("floater",
-                        () -> new com.maxenonyme.createsubmarine.submarine.block.FloaterItem(FLOATER.get(), new Item.Properties()));
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.FloaterItem(FLOATER.get(),
+                                        new Item.Properties()));
         public static final Supplier<BlockEntityType<FloaterBlockEntity>> FLOATER_BE = BLOCK_ENTITIES.register(
                         "floater",
                         () -> BlockEntityType.Builder.of(FloaterBlockEntity::new, FLOATER.get()).build(null));
         public static final Supplier<Item> PHYCOLOGICAL_MEMBRANE = ITEMS.register("phycological_membrane",
-                        () -> new com.maxenonyme.createsubmarine.submarine.block.PhycologicalMembraneItem(new net.minecraft.world.item.Item.Properties()
-                                        .rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.PhycologicalMembraneItem(
+                                        new net.minecraft.world.item.Item.Properties()
+                                                        .rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
         public static final Supplier<Item> STEEL_CABLE = ITEMS.register("steel_cable",
-                        () -> new com.maxenonyme.createsubmarine.submarine.block.SteelCableItem(new net.minecraft.world.item.Item.Properties()));
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.SteelCableItem(
+                                        new net.minecraft.world.item.Item.Properties()));
 
         public static final Supplier<Block> PULLEY = BLOCKS.register("pulley",
-                        () -> new PulleyBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).requiresCorrectToolForDrops().noOcclusion()));
+                        () -> new PulleyBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK)
+                                        .requiresCorrectToolForDrops().noOcclusion()));
         public static final Supplier<Item> PULLEY_ITEM = ITEMS.register("pulley",
                         () -> new net.minecraft.world.item.BlockItem(PULLEY.get(), new Item.Properties()));
         public static final Supplier<BlockEntityType<PulleyBlockEntity>> PULLEY_BE = BLOCK_ENTITIES.register(
@@ -266,29 +294,38 @@ public class CreateSubmarine {
                         () -> new com.maxenonyme.createsubmarine.submarine.block.ArrestingHookBlock(
                                         BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).noOcclusion()));
         public static final Supplier<Item> ARRESTING_HOOK_ITEM = ITEMS.register("arresting_hook",
-                        () -> new com.maxenonyme.createsubmarine.submarine.block.ArrestingHookItem(ARRESTING_HOOK.get(), new Item.Properties()));
-        public static final Supplier<BlockEntityType<com.maxenonyme.createsubmarine.submarine.block.entity.ArrestingHookBlockEntity>> ARRESTING_HOOK_BE = BLOCK_ENTITIES.register(
-                        "arresting_hook",
-                        () -> BlockEntityType.Builder.of(
-                                        com.maxenonyme.createsubmarine.submarine.block.entity.ArrestingHookBlockEntity::new,
-                                        ARRESTING_HOOK.get()).build(null));
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.ArrestingHookItem(ARRESTING_HOOK.get(),
+                                        new Item.Properties()));
+        public static final Supplier<BlockEntityType<com.maxenonyme.createsubmarine.submarine.block.entity.ArrestingHookBlockEntity>> ARRESTING_HOOK_BE = BLOCK_ENTITIES
+                        .register(
+                                        "arresting_hook",
+                                        () -> BlockEntityType.Builder.of(
+                                                        com.maxenonyme.createsubmarine.submarine.block.entity.ArrestingHookBlockEntity::new,
+                                                        ARRESTING_HOOK.get()).build(null));
 
         public static final Supplier<Block> UNDERWATER_MINE = BLOCKS.register("underwater_mine",
-                        () -> new UnderwaterMineBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).noOcclusion()));
+                        () -> new UnderwaterMineBlock(
+                                        BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).noOcclusion()));
         public static final Supplier<Item> UNDERWATER_MINE_ITEM = ITEMS.register("underwater_mine",
                         () -> new net.minecraft.world.item.BlockItem(UNDERWATER_MINE.get(), new Item.Properties()));
-        public static final Supplier<BlockEntityType<UnderwaterMineBlockEntity>> UNDERWATER_MINE_BE = BLOCK_ENTITIES.register(
-                        "underwater_mine",
-                        () -> BlockEntityType.Builder.of(UnderwaterMineBlockEntity::new, UNDERWATER_MINE.get()).build(null));
+        public static final Supplier<BlockEntityType<UnderwaterMineBlockEntity>> UNDERWATER_MINE_BE = BLOCK_ENTITIES
+                        .register(
+                                        "underwater_mine",
+                                        () -> BlockEntityType.Builder
+                                                        .of(UnderwaterMineBlockEntity::new, UNDERWATER_MINE.get())
+                                                        .build(null));
 
         public static final Supplier<Block> SUBMARINE_PROPELLER = BLOCKS.register("submarine_propeller",
                         () -> new com.maxenonyme.createsubmarine.submarine.block.propeller.submarine_propeller.SubmarinePropellerBlock(
                                         BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK)));
         public static final Supplier<Item> SUBMARINE_PROPELLER_ITEM = ITEMS.register("submarine_propeller",
                         () -> new net.minecraft.world.item.BlockItem(SUBMARINE_PROPELLER.get(), new Item.Properties()));
-        public static final Supplier<BlockEntityType<com.maxenonyme.createsubmarine.submarine.block.propeller.submarine_propeller.SubmarinePropellerBlockEntity>> SUBMARINE_PROPELLER_BE = BLOCK_ENTITIES.register(
-                        "submarine_propeller",
-                        () -> BlockEntityType.Builder.of(com.maxenonyme.createsubmarine.submarine.block.propeller.submarine_propeller.SubmarinePropellerBlockEntity::new, SUBMARINE_PROPELLER.get()).build(null));
+        public static final Supplier<BlockEntityType<com.maxenonyme.createsubmarine.submarine.block.propeller.submarine_propeller.SubmarinePropellerBlockEntity>> SUBMARINE_PROPELLER_BE = BLOCK_ENTITIES
+                        .register(
+                                        "submarine_propeller",
+                                        () -> BlockEntityType.Builder.of(
+                                                        com.maxenonyme.createsubmarine.submarine.block.propeller.submarine_propeller.SubmarinePropellerBlockEntity::new,
+                                                        SUBMARINE_PROPELLER.get()).build(null));
 
         public CreateSubmarine(IEventBus modEventBus, ModContainer modContainer) {
                 modContainer.registerConfig(ModConfig.Type.COMMON, SubmarineConfig.SPEC);
@@ -311,8 +348,10 @@ public class CreateSubmarine {
                 NeoForge.EVENT_BUS.addListener(SubmarinePressureSystem::onBlockBroken);
                 NeoForge.EVENT_BUS.addListener(SubmarineSinkingSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineInteractionSystem::onServerTick);
-                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.SteelCablePhysicsSystem::onServerTick);
-                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.CableElectrificationSystem::onServerTick);
+                NeoForge.EVENT_BUS.addListener(
+                                com.maxenonyme.createsubmarine.submarine.system.SteelCablePhysicsSystem::onServerTick);
+                NeoForge.EVENT_BUS.addListener(
+                                com.maxenonyme.createsubmarine.submarine.system.CableElectrificationSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(
                                 com.maxenonyme.createsubmarine.submarine.system.SubmarineInfoCommand::register);
                 NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGH,
@@ -370,26 +409,28 @@ public class CreateSubmarine {
 
         private void registerCapabilities(net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent event) {
                 @SuppressWarnings("unchecked")
-                net.minecraft.world.level.block.entity.BlockEntityType<dev.simulated_team.simulated.content.blocks.rope.rope_winch.RopeWinchBlockEntity> ropeWinchType =
-                        (net.minecraft.world.level.block.entity.BlockEntityType<dev.simulated_team.simulated.content.blocks.rope.rope_winch.RopeWinchBlockEntity>)
-                        net.minecraft.core.registries.BuiltInRegistries.BLOCK_ENTITY_TYPE.get(
-                                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("simulated", "rope_winch"));
+                net.minecraft.world.level.block.entity.BlockEntityType<dev.simulated_team.simulated.content.blocks.rope.rope_winch.RopeWinchBlockEntity> ropeWinchType = (net.minecraft.world.level.block.entity.BlockEntityType<dev.simulated_team.simulated.content.blocks.rope.rope_winch.RopeWinchBlockEntity>) net.minecraft.core.registries.BuiltInRegistries.BLOCK_ENTITY_TYPE
+                                .get(
+                                                net.minecraft.resources.ResourceLocation
+                                                                .fromNamespaceAndPath("simulated", "rope_winch"));
                 if (ropeWinchType != null) {
                         event.registerBlockEntity(
                                         net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,
                                         ropeWinchType,
-                                        (be, side) -> com.maxenonyme.createsubmarine.submarine.system.CableElectrificationSystem.getOrCreateStorage(be));
+                                        (be, side) -> com.maxenonyme.createsubmarine.submarine.system.CableElectrificationSystem
+                                                        .getOrCreateStorage(be));
                 }
                 @SuppressWarnings("unchecked")
-                net.minecraft.world.level.block.entity.BlockEntityType<dev.simulated_team.simulated.content.blocks.rope.rope_connector.RopeConnectorBlockEntity> ropeConnectorType =
-                        (net.minecraft.world.level.block.entity.BlockEntityType<dev.simulated_team.simulated.content.blocks.rope.rope_connector.RopeConnectorBlockEntity>)
-                        net.minecraft.core.registries.BuiltInRegistries.BLOCK_ENTITY_TYPE.get(
-                                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("simulated", "rope_connector"));
+                net.minecraft.world.level.block.entity.BlockEntityType<dev.simulated_team.simulated.content.blocks.rope.rope_connector.RopeConnectorBlockEntity> ropeConnectorType = (net.minecraft.world.level.block.entity.BlockEntityType<dev.simulated_team.simulated.content.blocks.rope.rope_connector.RopeConnectorBlockEntity>) net.minecraft.core.registries.BuiltInRegistries.BLOCK_ENTITY_TYPE
+                                .get(
+                                                net.minecraft.resources.ResourceLocation
+                                                                .fromNamespaceAndPath("simulated", "rope_connector"));
                 if (ropeConnectorType != null) {
                         event.registerBlockEntity(
                                         net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,
                                         ropeConnectorType,
-                                        (be, side) -> com.maxenonyme.createsubmarine.submarine.system.CableElectrificationSystem.getOrCreateStorage(be));
+                                        (be, side) -> com.maxenonyme.createsubmarine.submarine.system.CableElectrificationSystem
+                                                        .getOrCreateStorage(be));
                 }
                 event.registerBlockEntity(
                                 net.neoforged.neoforge.capabilities.Capabilities.FluidHandler.BLOCK,
@@ -398,6 +439,10 @@ public class CreateSubmarine {
                 event.registerBlockEntity(
                                 net.neoforged.neoforge.capabilities.Capabilities.FluidHandler.BLOCK,
                                 BALLAST_VENT_BE.get(),
+                                (be, side) -> be.getFluidHandlerForSide(side));
+                event.registerBlockEntity(
+                                net.neoforged.neoforge.capabilities.Capabilities.FluidHandler.BLOCK,
+                                DECOMPRESSION_CHAMBER_BE.get(),
                                 (be, side) -> be.getFluidHandlerForSide(side));
                 event.registerBlockEntity(
                                 net.neoforged.neoforge.capabilities.Capabilities.FluidHandler.BLOCK,
@@ -435,19 +480,22 @@ public class CreateSubmarine {
         }
 
         private void onCommonSetup(FMLCommonSetupEvent event) {
-            event.enqueueWork(() -> {
-                HullStrengthConfig.load();
-                registerToSimulatedTab();
-                com.simibubi.create.api.stress.BlockStressValues.IMPACTS.register(SUBMARINE_PROPELLER.get(), () -> 4.0);
-                com.simibubi.create.foundation.item.TooltipModifier.REGISTRY.register(
-                                SUBMARINE_PROPELLER_ITEM.get(),
-                                com.simibubi.create.foundation.item.TooltipModifier.mapNull(
-                                                com.simibubi.create.foundation.item.KineticStats.create(SUBMARINE_PROPELLER_ITEM.get())));
-                com.simibubi.create.api.behaviour.display.DisplaySource.BY_BLOCK_ENTITY.register(
-                BAROMETER_BE.get(),
-                java.util.List.of(com.maxenonyme.createsubmarine.submarine.system.SubmarineDisplaySources.BAROMETER.get())
-            );
-            });
+                event.enqueueWork(() -> {
+                        HullStrengthConfig.load();
+                        registerToSimulatedTab();
+                        com.simibubi.create.api.stress.BlockStressValues.IMPACTS.register(SUBMARINE_PROPELLER.get(),
+                                        () -> 4.0);
+                        com.simibubi.create.foundation.item.TooltipModifier.REGISTRY.register(
+                                        SUBMARINE_PROPELLER_ITEM.get(),
+                                        com.simibubi.create.foundation.item.TooltipModifier.mapNull(
+                                                        com.simibubi.create.foundation.item.KineticStats
+                                                                        .create(SUBMARINE_PROPELLER_ITEM.get())));
+                        com.simibubi.create.api.behaviour.display.DisplaySource.BY_BLOCK_ENTITY.register(
+                                        BAROMETER_BE.get(),
+                                        java.util.List.of(
+                                                        com.maxenonyme.createsubmarine.submarine.system.SubmarineDisplaySources.BAROMETER
+                                                                        .get()));
+                });
         }
 
         @SuppressWarnings("unchecked")
@@ -461,12 +509,15 @@ public class CreateSubmarine {
                         tabItems.add(CREATIVE_OXYGENATOR_ITEM::get);
                         tabItems.add(BALLAST_TANK_ITEM::get);
                         tabItems.add(BALLAST_VENT_ITEM::get);
+                        tabItems.add(DECOMPRESSION_CHAMBER_ITEM::get);
                         tabItems.add(OXYGENE_DIFFUSER_ITEM::get);
                         ResourceLocation subSection = ResourceLocation.fromNamespaceAndPath(MOD_ID, "submarine");
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "creative_oxygenator"),
                                         subSection);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "ballast_tank"), subSection);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "ballast_vent"), subSection);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "decompression_chamber"),
+                                        subSection);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "oxygene_diffuser"),
                                         subSection);
                         tabItems.add(ELECTROLYZER_ITEM::get);
@@ -482,7 +533,8 @@ public class CreateSubmarine {
                         tabItems.add(FLOATER_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "floater"), subSection);
                         tabItems.add(PHYCOLOGICAL_MEMBRANE::get);
-                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "phycological_membrane"), subSection);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "phycological_membrane"),
+                                        subSection);
                         tabItems.add(STEEL_CABLE::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "steel_cable"), subSection);
                         tabItems.add(PULLEY_ITEM::get);
@@ -490,7 +542,8 @@ public class CreateSubmarine {
                         tabItems.add(UNDERWATER_MINE_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "underwater_mine"), subSection);
                         tabItems.add(SUBMARINE_PROPELLER_ITEM::get);
-                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "submarine_propeller"), subSection);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "submarine_propeller"),
+                                        subSection);
                         tabItems.add(BAROMETER_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "barometer"), subSection);
                         tabItems.add(ARRESTING_HOOK_ITEM::get);
