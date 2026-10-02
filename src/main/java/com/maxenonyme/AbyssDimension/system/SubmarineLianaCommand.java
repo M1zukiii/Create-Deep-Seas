@@ -45,6 +45,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public final class SubmarineLianaCommand {
     private static final int SEGMENT_SIZE = 3;
+    private static final boolean SPAWN_FRUITS = false;
 
     private static final class PendingSpawn {
         final ServerLevel level;
@@ -236,7 +237,7 @@ public final class SubmarineLianaCommand {
 
         Random random = new Random();
         List<Integer> seedIndices = new ArrayList<>();
-        if (length > 1) {
+        if (SPAWN_FRUITS && length > 1) {
             int maxFruits = Math.min(2, numSegments);
             int fruitsToSpawn = random.nextInt(maxFruits + 1);
             Set<Integer> usedSegments = new HashSet<>();
@@ -366,8 +367,7 @@ public final class SubmarineLianaCommand {
                         seedJoint.setContactsEnabled(false);
                     }
 
-                    BlockEntity rawBe = subLevel.getPlot()
-                            .getEmbeddedLevelAccessor().getBlockEntity(segmentPlotAnchor);
+                    BlockEntity rawBe = level.getBlockEntity(segmentPlotAnchor);
                     if (rawBe instanceof SubmarineLianaBlockEntity lianaBe) {
                         lianaBe.setSeed(seedSubLevel.getUniqueId(), localAnchorOffset);
                         lianaBe.setSeedJoint(seedJoint);
@@ -413,8 +413,7 @@ public final class SubmarineLianaCommand {
                     segmentLen));
 
             BlockPos plotAnchor = current.getPlot().getCenterBlock();
-            BlockEntity rawBe = current.getPlot().getEmbeddedLevelAccessor()
-                    .getBlockEntity(plotAnchor);
+            BlockEntity rawBe = level.getBlockEntity(plotAnchor);
             if (rawBe instanceof SubmarineLianaBlockEntity be) {
                 be.setController(isController);
                 be.setSegmentLen(segmentLen);
@@ -452,8 +451,7 @@ public final class SubmarineLianaCommand {
             if (groundJoint != null) {
                 groundJoint.setContactsEnabled(false);
             }
-            BlockEntity rawBe0 = segments[0].getPlot().getEmbeddedLevelAccessor()
-                    .getBlockEntity(plotAnchor0);
+            BlockEntity rawBe0 = level.getBlockEntity(plotAnchor0);
             if (rawBe0 instanceof SubmarineLianaBlockEntity be0) {
                 be0.setGroundJoint(groundJoint);
             }
@@ -482,8 +480,7 @@ public final class SubmarineLianaCommand {
             if (joint != null) {
                 joint.setContactsEnabled(false);
             }
-            BlockEntity rawBeNext = next.getPlot().getEmbeddedLevelAccessor()
-                    .getBlockEntity(nextPlotAnchor);
+            BlockEntity rawBeNext = level.getBlockEntity(nextPlotAnchor);
             if (rawBeNext instanceof SubmarineLianaBlockEntity beNext) {
                 beNext.setParentJoint(joint);
             }

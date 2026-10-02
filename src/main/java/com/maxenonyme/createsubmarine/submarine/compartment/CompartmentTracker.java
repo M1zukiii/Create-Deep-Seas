@@ -1,12 +1,16 @@
 package com.maxenonyme.createsubmarine.submarine.compartment;
 
+import com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig;
+
 import com.maxenonyme.createsubmarine.CreateSubmarine;
 import com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry;
+import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.companion.SubLevelAccess;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import dev.ryanhcode.sable.companion.math.Pose3dc;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -42,6 +46,7 @@ import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.util.thread.EffectiveSide;
 
 public class CompartmentTracker {
     private static final Map<UUID, Set<BlockPos>> SEALED_UNION = new ConcurrentHashMap<>();
@@ -53,9 +58,12 @@ public class CompartmentTracker {
     private static final Map<UUID, Set<BlockPos>> COMPROMISED_ANCHORS = new ConcurrentHashMap<>();
     private static final Map<UUID, Vector3d> CACHED_DIMENSIONS = new ConcurrentHashMap<>();
     private static final Map<UUID, double[]> LAST_POSE = new ConcurrentHashMap<>();
-    private static final Map<UUID, CompartmentDetector.IncrementalScanState> ACTIVE_SCANS = new ConcurrentHashMap<>();
+    private static final Map<UUID, CompartmentDetector.IncrementalScanState> CLIENT_SCANS = new ConcurrentHashMap<>();
+    private static final Map<UUID, CompartmentDetector.IncrementalScanState> SERVER_SCANS = new ConcurrentHashMap<>();
     private static final Map<UUID, Set<BlockPos>> SOLID_BLOCKS = new ConcurrentHashMap<>();
     private static final Set<UUID> STRUCTURE_DIRTY = ConcurrentHashMap.newKeySet();
+    private static final Map<UUID, Set<BlockPos>> PLUGS = new ConcurrentHashMap<>();
+    private static final Map<UUID, Set<BlockPos>> SUNKEN = new ConcurrentHashMap<>();
     private static volatile AABB globalBounds = null;
 
     private record SealedEntry(UUID id, SubLevelAccess access,
@@ -92,8 +100,21 @@ public class CompartmentTracker {
         }
         SUBS.put(id, sub);
         LAST_UPDATE_TICK.put(id, gameTick);
+        if (sub instanceof SubLevel sl) {
+            expirePlugs(id, sl, result.components());
+            if (sl.getLevel() != null && !sl.getLevel().isClientSide)
+                BreachLedger.changed(id, plugs(id));
+        }
         rebuildUnionsAndPush(id, result.components());
+        refreshBounds(id, sub);
+    }
 
+    public static void touch(UUID id, SubLevelAccess sub, long gameTick) {
+        LAST_UPDATE_TICK.put(id, gameTick);
+        refreshBounds(id, sub);
+    }
+
+    private static void refreshBounds(UUID id, SubLevelAccess sub) {
         if (sub instanceof SubLevel sl && sl.getPlot() != null) {
             BoundingBox3ic bounds = sl.getPlot().getBoundingBox();
             double sx = bounds.maxX() - bounds.minX() + 1;
@@ -107,15 +128,15 @@ public class CompartmentTracker {
     }
 
     private static Set<BlockPos> rebuildUnionsAndPush(UUID id, List<CompartmentDetector.Component> comps) {
-        Set<BlockPos> flooded = FLOODED_ANCHORS.getOrDefault(id, Set.of());
         Set<BlockPos> compromised = COMPROMISED_ANCHORS.getOrDefault(id, Set.of());
+        Set<BlockPos> sunken = SUNKEN.getOrDefault(id, Set.of());
         Set<BlockPos> sealed = new HashSet<>();
         Set<BlockPos> visual = new HashSet<>();
 
         boolean anySealed = false;
         for (CompartmentDetector.Component c : comps) {
             if (!c.sealed() || (c.anchor() != null
-                    && (compromised.contains(c.anchor()) || flooded.contains(c.anchor()))))
+                    && (compromised.contains(c.anchor()) || sunken.contains(c.anchor()))))
                 continue;
             anySealed = true;
             sealed.addAll(c.internal());
@@ -128,6 +149,7 @@ public class CompartmentTracker {
             if (solid != null) {
                 visual.addAll(solid);
             }
+            visual.removeAll(plugs(id));
         }
         SEALED_UNION.put(id, Collections.unmodifiableSet(sealed));
         VISUAL_UNION.put(id, Collections.unmodifiableSet(visual));
@@ -149,14 +171,15 @@ public class CompartmentTracker {
         VISUAL_UNION.remove(id);
         OCCLUSION_UNION.remove(id);
         COMPARTMENTS.remove(id);
-        FLOODED_ANCHORS.remove(id);
+        SUNKEN.remove(id);
         SUBS.remove(id);
         WORLD_AABB.remove(id);
         LAST_UPDATE_TICK.remove(id);
         COMPROMISED_ANCHORS.remove(id);
         CACHED_DIMENSIONS.remove(id);
         LAST_POSE.remove(id);
-        ACTIVE_SCANS.remove(id);
+        CLIENT_SCANS.remove(id);
+        SERVER_SCANS.remove(id);
         SOLID_BLOCKS.remove(id);
         STRUCTURE_DIRTY.remove(id);
         rebuildSealedSnapshot();
@@ -168,16 +191,19 @@ public class CompartmentTracker {
         VISUAL_UNION.clear();
         OCCLUSION_UNION.clear();
         COMPARTMENTS.clear();
-        FLOODED_ANCHORS.clear();
+        PLUGS.clear();
+        SUNKEN.clear();
         SUBS.clear();
         WORLD_AABB.clear();
         LAST_UPDATE_TICK.clear();
         COMPROMISED_ANCHORS.clear();
         CACHED_DIMENSIONS.clear();
         LAST_POSE.clear();
-        ACTIVE_SCANS.clear();
+        CLIENT_SCANS.clear();
+        SERVER_SCANS.clear();
         SOLID_BLOCKS.clear();
         STRUCTURE_DIRTY.clear();
+        CLIENT_EDITS.clear();
         sealedSnapshot = new SealedEntry[0];
         globalBounds = null;
     }
@@ -244,8 +270,12 @@ public class CompartmentTracker {
         LAST_POSE.put(id, new double[] { p.x(), p.y(), p.z(), q.x(), q.y(), q.z(), q.w() });
     }
 
+    private static Map<UUID, CompartmentDetector.IncrementalScanState> scans() {
+        return EffectiveSide.get().isClient() ? CLIENT_SCANS : SERVER_SCANS;
+    }
+
     public static boolean isScanActive(UUID id) {
-        return ACTIVE_SCANS.containsKey(id);
+        return scans().containsKey(id);
     }
 
     public static boolean isStructureDirty(UUID id) {
@@ -258,7 +288,19 @@ public class CompartmentTracker {
         return STRUCTURE_VERSION.getOrDefault(id, 0);
     }
 
-    public static void onPlotBlockChanged(Level level, BlockPos pos) {
+    private static final Map<UUID, Integer> CLIENT_EDITS = new ConcurrentHashMap<>();
+
+    public static int clientEdits(UUID id) {
+        return CLIENT_EDITS.getOrDefault(id, 0);
+    }
+
+    public static void onPlotBlockChanged(Level level, BlockPos pos, BlockState before, BlockState after) {
+        if (level.isClientSide && before.getBlock() != after.getBlock()
+                && Sable.HELPER.getContaining(level, pos) instanceof SubLevel edited)
+            CLIENT_EDITS.merge(edited.getUniqueId(), 1, Integer::sum);
+        boolean open = CompartmentDetector.isPermeable(after);
+        if (CompartmentDetector.isPermeable(before) == open)
+            return;
         for (Map.Entry<UUID, SubLevelAccess> e : SUBS.entrySet()) {
             if (!(e.getValue() instanceof SubLevel sl))
                 continue;
@@ -273,30 +315,147 @@ public class CompartmentTracker {
                     && pos.getZ() >= b.minZ() && pos.getZ() <= b.maxZ()) {
                 STRUCTURE_DIRTY.add(e.getKey());
                 STRUCTURE_VERSION.merge(e.getKey(), 1, Integer::sum);
+                if (!open)
+                    unplug(e.getKey(), pos);
+                else if (SubmarineConfig.progressiveFlooding() && isSubmarineManaged(e.getKey(), level.getGameTime())
+                        && isSealedHull(e.getKey(), pos) && opensOutward(e.getKey(), pos))
+                    PLUGS.computeIfAbsent(e.getKey(), k -> ConcurrentHashMap.newKeySet()).add(pos.immutable());
+                if (!level.isClientSide)
+                    BreachLedger.changed(e.getKey(), plugs(e.getKey()));
             }
         }
     }
 
-    private static final Map<UUID, Set<BlockPos>> FLOODED_ANCHORS = new ConcurrentHashMap<>();
-
-    public static Set<BlockPos> floodedAnchors(UUID id) {
-        return FLOODED_ANCHORS.getOrDefault(id, Set.of());
+    public static boolean isSunken(UUID id, BlockPos anchor) {
+        return anchor != null && SUNKEN.getOrDefault(id, Set.of()).contains(anchor);
     }
 
-    public static void setFloodedAnchors(UUID id, Set<BlockPos> anchors) {
-        Set<BlockPos> previous = FLOODED_ANCHORS.get(id);
-        if (anchors == null || anchors.isEmpty()) {
-            if (previous == null)
-                return;
-            FLOODED_ANCHORS.remove(id);
-        } else {
-            if (anchors.equals(previous))
-                return;
-            FLOODED_ANCHORS.put(id, Set.copyOf(anchors));
-        }
+    public static void setSunken(UUID id, Set<BlockPos> anchors) {
+        if (anchors.equals(SUNKEN.getOrDefault(id, Set.of())))
+            return;
+        if (anchors.isEmpty())
+            SUNKEN.remove(id);
+        else
+            SUNKEN.put(id, Set.copyOf(anchors));
         List<CompartmentDetector.Component> comps = COMPARTMENTS.get(id);
         if (comps != null)
             rebuildUnionsAndPush(id, comps);
+    }
+
+    public static Set<BlockPos> plugs(UUID id) {
+        Set<BlockPos> plugs = PLUGS.get(id);
+        return plugs == null || !SubmarineConfig.progressiveFlooding() ? Set.of() : plugs;
+    }
+
+    public static Set<BlockPos> sunkenAnchors(UUID id) {
+        return SUNKEN.getOrDefault(id, Set.of());
+    }
+
+    public static boolean isBreached(UUID id, CompartmentDetector.Component comp) {
+        Set<BlockPos> plugs = plugs(id);
+        if (plugs.isEmpty() || comp == null)
+            return false;
+        for (BlockPos plug : plugs) {
+            if (comp.hull().contains(plug))
+                return true;
+        }
+        return false;
+    }
+
+    public static void restorePlugs(UUID id, Collection<BlockPos> plugs) {
+        if (plugs.isEmpty()) {
+            if (PLUGS.remove(id) == null)
+                return;
+        } else {
+            Set<BlockPos> set = ConcurrentHashMap.newKeySet();
+            set.addAll(plugs);
+            if (set.equals(PLUGS.get(id)))
+                return;
+            PLUGS.put(id, set);
+        }
+        STRUCTURE_DIRTY.add(id);
+        STRUCTURE_VERSION.merge(id, 1, Integer::sum);
+    }
+
+    private static boolean unplug(UUID id, BlockPos pos) {
+        Set<BlockPos> plugs = PLUGS.get(id);
+        if (plugs == null || !plugs.remove(pos))
+            return false;
+        if (plugs.isEmpty())
+            PLUGS.remove(id);
+        return true;
+    }
+
+    private static boolean opensOutward(UUID id, BlockPos pos) {
+        Set<BlockPos> solid = SOLID_BLOCKS.getOrDefault(id, Set.of());
+        Set<BlockPos> compromised = COMPROMISED_ANCHORS.getOrDefault(id, Set.of());
+        List<CompartmentDetector.Component> comps = COMPARTMENTS.getOrDefault(id, List.of());
+        for (Direction dir : Direction.values()) {
+            BlockPos n = pos.relative(dir);
+            if (solid.contains(n))
+                continue;
+            boolean enclosed = false;
+            for (CompartmentDetector.Component c : comps) {
+                if (c.sealed() && !compromised.contains(c.anchor()) && c.internal().contains(n)) {
+                    enclosed = true;
+                    break;
+                }
+            }
+            if (!enclosed)
+                return true;
+        }
+        return false;
+    }
+
+    private static boolean isSealedHull(UUID id, BlockPos pos) {
+        Set<BlockPos> compromised = COMPROMISED_ANCHORS.getOrDefault(id, Set.of());
+        for (CompartmentDetector.Component c : COMPARTMENTS.getOrDefault(id, List.of())) {
+            if (c.sealed() && !compromised.contains(c.anchor()) && c.hull().contains(pos))
+                return true;
+        }
+        return false;
+    }
+
+    private static void expirePlugs(UUID id, SubLevel sub, List<CompartmentDetector.Component> comps) {
+        Set<BlockPos> plugs = PLUGS.get(id);
+        Level level = sub.getLevel();
+        if (plugs == null || level == null)
+            return;
+        Set<BlockPos> compromised = COMPROMISED_ANCHORS.getOrDefault(id, Set.of());
+        boolean expired = false;
+        for (BlockPos plug : List.copyOf(plugs)) {
+            CompartmentDetector.Component owner = null;
+            for (CompartmentDetector.Component c : comps) {
+                if (c.sealed() && !compromised.contains(c.anchor()) && c.hull().contains(plug)) {
+                    owner = c;
+                    break;
+                }
+            }
+            if (owner != null && (outsideIsWater(sub, level, plug) || holdsWater(level, owner)))
+                continue;
+            plugs.remove(plug);
+            expired = true;
+        }
+        if (plugs.isEmpty())
+            PLUGS.remove(id);
+        if (expired) {
+            STRUCTURE_DIRTY.add(id);
+            STRUCTURE_VERSION.merge(id, 1, Integer::sum);
+        }
+    }
+
+    private static boolean outsideIsWater(SubLevel sub, Level level, BlockPos plotPos) {
+        Vector3d w = new Vector3d(plotPos.getX() + 0.5, plotPos.getY() + 0.5, plotPos.getZ() + 0.5);
+        sub.logicalPose().transformPosition(w);
+        return realFluidState(level, BlockPos.containing(w.x, w.y, w.z)).is(FluidTags.WATER);
+    }
+
+    private static boolean holdsWater(Level level, CompartmentDetector.Component comp) {
+        for (BlockPos p : comp.internal()) {
+            if (level.isLoaded(p) && level.getFluidState(p).is(FluidTags.WATER))
+                return true;
+        }
+        return false;
     }
 
     private static final Map<UUID, Long> SUBMARINE_CLAIM = new ConcurrentHashMap<>();
@@ -315,8 +474,8 @@ public class CompartmentTracker {
     private static final Map<UUID, Integer> MISSING_CHUNK_SCANS = new ConcurrentHashMap<>();
 
     public static void beginScanIfIdle(UUID id, SubLevelAccess sub) {
-        ACTIVE_SCANS.computeIfAbsent(id, k -> {
-            CompartmentDetector.IncrementalScanState st = CompartmentDetector.beginScan(sub);
+        scans().computeIfAbsent(id, k -> {
+            CompartmentDetector.IncrementalScanState st = CompartmentDetector.beginScan(sub, Set.copyOf(plugs(id)));
             if (st != null)
                 STRUCTURE_DIRTY.remove(id);
             return st;
@@ -325,7 +484,8 @@ public class CompartmentTracker {
 
     public static boolean stepScan(UUID id, SubLevelAccess sub, int budget, long gameTick) {
         SUBMARINE_CLAIM.put(id, gameTick);
-        CompartmentDetector.IncrementalScanState st = ACTIVE_SCANS.get(id);
+        Map<UUID, CompartmentDetector.IncrementalScanState> scans = scans();
+        CompartmentDetector.IncrementalScanState st = scans.get(id);
         if (st == null)
             return false;
         try {
@@ -340,19 +500,19 @@ public class CompartmentTracker {
                     CompartmentDetector.Result r = CompartmentDetector.finishScan(st);
                     update(id, sub, r, gameTick);
                 }
-                ACTIVE_SCANS.remove(id);
+                scans.remove(id);
                 return true;
             }
             return false;
         } catch (Throwable t) {
-            ACTIVE_SCANS.remove(id);
+            scans.remove(id);
             LAST_UPDATE_TICK.put(id, gameTick);
             return false;
         }
     }
 
     public static void abortScan(UUID id) {
-        ACTIVE_SCANS.remove(id);
+        scans().remove(id);
     }
 
     private static final Map<UUID, Set<BlockPos>> OCCLUSION_UNION = new ConcurrentHashMap<>();
@@ -540,6 +700,16 @@ public class CompartmentTracker {
         return realFluidState(chunk, pos);
     }
 
+    public static BlockState realBlockState(ChunkAccess chunk, BlockPos pos) {
+        int idx = chunk.getSectionIndex(pos.getY());
+        if (idx < 0 || idx >= chunk.getSections().length)
+            return Blocks.AIR.defaultBlockState();
+        LevelChunkSection section = chunk.getSection(idx);
+        if (section == null || section.hasOnlyAir())
+            return Blocks.AIR.defaultBlockState();
+        return section.getBlockState(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
+    }
+
     public static FluidState realFluidState(ChunkAccess chunk, BlockPos pos) {
         int y = pos.getY();
         int idx = chunk.getSectionIndex(y);
@@ -568,6 +738,10 @@ public class CompartmentTracker {
             }
         }
         return null;
+    }
+
+    public static Set<BlockPos> solidBlocks(UUID id) {
+        return SOLID_BLOCKS.getOrDefault(id, Set.of());
     }
 
     public static List<CompartmentDetector.Component> getCompartments(UUID id) {

@@ -24,7 +24,7 @@ import net.minecraft.tags.FluidTags;
 public class ElectrolyzerBlockEntity extends KineticBlockEntity {
     private static final int FE_PER_RPM = 4;
     private static final int MAX_GENERATION = 1000;
-    private static final ResourceLocation ELECTRON_TUBE = ResourceLocation.fromNamespaceAndPath("create", "electron_tube");
+    private static final ResourceLocation SHAFT = ResourceLocation.fromNamespaceAndPath("create", "shaft");
 
     public final FluidTank waterTank = new FluidTank(4000, fluid -> fluid.getFluid().is(FluidTags.WATER));
     public final FluidTank oxygenTank = new FluidTank(4000,
@@ -34,7 +34,7 @@ public class ElectrolyzerBlockEntity extends KineticBlockEntity {
     public final ItemStackHandler module = new ItemStackHandler(1) {
         @Override
         public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-            return isElectronTube(stack);
+            return isShaft(stack);
         }
 
         @Override
@@ -126,12 +126,12 @@ public class ElectrolyzerBlockEntity extends KineticBlockEntity {
         super(CreateSubmarine.ELECTROLYZER_BE.get(), pos, state);
     }
 
-    public static boolean isElectronTube(ItemStack stack) {
-        return ELECTRON_TUBE.equals(BuiltInRegistries.ITEM.getKey(stack.getItem()));
+    public static boolean isShaft(ItemStack stack) {
+        return SHAFT.equals(BuiltInRegistries.ITEM.getKey(stack.getItem()));
     }
 
     public boolean hasAlternator() {
-        return !module.getStackInSlot(0).isEmpty();
+        return isShaft(module.getStackInSlot(0));
     }
 
     @Override

@@ -3,6 +3,7 @@
   "minVersion": "0.8",
   "package": "com.maxenonyme.createsubmarine.submarine.mixin",
   "compatibilityLevel": "JAVA_21",
+  "plugin": "com.maxenonyme.createsubmarine.submarine.CompatMixinPlugin",
   "mixins": [
     "LevelChunkMixin",
     "RopeStrandHolderBehaviorMixin",
@@ -41,6 +42,7 @@
     "compat.SodiumFluidRendererMixin",
     "compat.SodiumBlockRendererMixin",
     "compat.FlywheelFogUniformsMixin",
+    "compat.DistantHorizonsFogMixin",
     "compat.VeilShaderIncludeFixMixin",
     "compat.sable.SableSubLevelBEFogMixin",
     "compat.sable.SableSubLevelPocketFogMixin",

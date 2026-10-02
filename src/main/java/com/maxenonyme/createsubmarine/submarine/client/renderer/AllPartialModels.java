@@ -6,6 +6,10 @@ import net.createmod.catnip.render.SpriteShifter;
 import net.minecraft.resources.ResourceLocation;
 public class AllPartialModels {
     public static final PartialModel PUMP_CONTROLLER_COG = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/pump_controller/cog"));
+    public static final PartialModel SONAR_TURN = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/sonar/turn"));
+    public static final PartialModel SONAR_TURN_EMISSIVE = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/sonar/turn_emissive"));
+    public static final PartialModel SONAR_FLASH_TOP = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/sonar/flash_top"));
+    public static final PartialModel SONAR_FLASH_BOTTOM = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/sonar/flash_bottom"));
     public static final PartialModel BALLAST_WHEEL = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/ballast_vent/gear"));
     public static final PartialModel ELECTROLYZER_GLASS = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/electrolyzer_glass"));
     public static final PartialModel STEEL_CABLE = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/steel_cable/steel_cable"));

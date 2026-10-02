@@ -55,6 +55,16 @@ public abstract class EntityWaterPhysicsMixin {
         }
     }
 
+    @Inject(method = {"onInsideBubbleColumn", "onAboveBubbleCol"}, at = @At("HEAD"), cancellable = true)
+    private void createsubmarine$ignoreBubbleColumn(boolean downwards, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        if (createsubmarine$isInsideAirtightSub()) ci.cancel();
+    }
+
+    @Inject(method = {"isInWaterOrBubble", "isInWaterRainOrBubble"}, at = @At("HEAD"), cancellable = true)
+    private void createsubmarine$dryInsideSub(CallbackInfoReturnable<Boolean> cir) {
+        if (createsubmarine$isInsideAirtightSub()) cir.setReturnValue(false);
+    }
+
     @Inject(method = "isUnderWater", at = @At("HEAD"), cancellable = true)
     private void createsubmarine$isUnderWater(CallbackInfoReturnable<Boolean> cir) {
         if (createsubmarine$isInsideAirtightSub()) cir.setReturnValue(false);
@@ -132,11 +142,15 @@ public abstract class EntityWaterPhysicsMixin {
                     if (fs.is(net.minecraft.tags.FluidTags.WATER)) {
                         inside = false;
                     } else {
-                        org.joml.Vector3d localFeet = new org.joml.Vector3d(x, y, z);
-                        sub.logicalPose().transformPositionInverse(localFeet);
-                        net.minecraft.core.BlockPos localFeetPos = net.minecraft.core.BlockPos.containing(localFeet.x, localFeet.y, localFeet.z);
-                        if (subLevel.getFluidState(localFeetPos).is(net.minecraft.tags.FluidTags.WATER)) {
-                            inside = false;
+                        double[] probes = { y + 0.15, y + entity.getBbHeight() * 0.5 };
+                        for (double probe : probes) {
+                            org.joml.Vector3d local = new org.joml.Vector3d(x, probe, z);
+                            sub.logicalPose().transformPositionInverse(local);
+                            net.minecraft.core.BlockPos cell = net.minecraft.core.BlockPos.containing(local.x, local.y, local.z);
+                            if (subLevel.getFluidState(cell).is(net.minecraft.tags.FluidTags.WATER)) {
+                                inside = false;
+                                break;
+                            }
                         }
                     }
                 }

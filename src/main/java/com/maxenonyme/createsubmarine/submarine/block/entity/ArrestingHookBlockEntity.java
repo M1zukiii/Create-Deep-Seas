@@ -219,4 +219,10 @@ public class ArrestingHookBlockEntity extends BlockEntity implements BlockEntity
         super.setRemoved();
         releaseCollider();
     }
+
+    @Override
+    public void onChunkUnloaded() {
+        super.onChunkUnloaded();
+        releaseCollider();
+    }
 }

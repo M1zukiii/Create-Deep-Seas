@@ -27,13 +27,17 @@ public record CableStrandRemovePayload(UUID strandId) implements CustomPacketPay
     }
 
     public static void handle(CableStrandRemovePayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> {
+        context.enqueueWork(() -> ClientHandler.handle(payload));
+    }
+
+    private static class ClientHandler {
+        private static void handle(CableStrandRemovePayload payload) {
             Minecraft mc = Minecraft.getInstance();
             if (mc.level == null)
                 return;
             ClientLevelRopeManager manager = ClientLevelRopeManager.getOrCreate(mc.level);
             if (manager != null)
                 manager.removeStrand(payload.strandId());
-        });
+        }
     }
 }

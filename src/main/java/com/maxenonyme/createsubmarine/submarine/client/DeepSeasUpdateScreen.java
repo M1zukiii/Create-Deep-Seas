@@ -48,7 +48,8 @@ public class DeepSeasUpdateScreen extends Screen {
         if (!(event.getNewScreen() instanceof TitleScreen menu)) {
             return;
         }
-        if (!SubmarineConfig.CLIENT_SPEC.isLoaded() || !SubmarineClientState.hasSeenWelcomeScreen()) {
+        if (!SubmarineConfig.CLIENT_SPEC.isLoaded() || !SubmarineClientState.hasSeenWelcomeScreen()
+                || !SubmarineClientState.hasSeenSafetyScreen()) {
             return;
         }
         if (SubmarineConfig.DISABLE_STARTUP_SCREENS.get()) {

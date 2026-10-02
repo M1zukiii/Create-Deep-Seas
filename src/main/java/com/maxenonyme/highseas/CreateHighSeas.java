@@ -244,10 +244,7 @@ public class CreateHighSeas {
         NeoForge.EVENT_BUS.addListener(HighSeasLifecycleHandler::onLevelUnload);
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            modContainer.registerExtensionPoint(
-                    IConfigScreenFactory.class,
-                    (container, parent) -> new ConfigurationScreen(container,
-                            parent));
+            modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
             SailRenderClient.init(modEventBus);
             WindVaneClient.init(modEventBus);
             BoatEngineClient.init(modEventBus);

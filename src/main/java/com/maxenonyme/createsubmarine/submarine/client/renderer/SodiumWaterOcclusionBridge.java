@@ -11,6 +11,8 @@ import org.lwjgl.opengl.GL20;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public final class SodiumWaterOcclusionBridge {
@@ -24,6 +26,7 @@ public final class SodiumWaterOcclusionBridge {
     private static final Map<Integer, ProgramUniforms> UNIFORM_CACHE = new HashMap<>();
 
     public static volatile boolean PIXEL_PERFECT_ACTIVE = false;
+    public static final Set<Long> FALLBACK_HOLES = ConcurrentHashMap.newKeySet();
 
     private record ProgramUniforms(int enabled, int closeSampler, int farSampler) {
         boolean hasOcclusion() {

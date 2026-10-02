@@ -26,6 +26,7 @@ public final class BallastTankCT {
     }
 
     private static final int SCAN_LIMIT = 512;
+    private static final int REACH = 16;
 
     private static final CTSpriteShiftEntry SIDE = shift("ballast_all");
     private static final CTSpriteShiftEntry CAP = shift("below");
@@ -72,6 +73,8 @@ public final class BallastTankCT {
                 maxZ = Math.max(maxZ, current.getZ());
                 for (Direction dir : Direction.Plane.HORIZONTAL) {
                     BlockPos next = current.relative(dir);
+                    if (Math.abs(next.getX() - pos.getX()) > REACH || Math.abs(next.getZ() - pos.getZ()) > REACH)
+                        return true;
                     if (world.getBlockState(next).getBlock() != block)
                         continue;
                     if (!seen.add(next.asLong()))

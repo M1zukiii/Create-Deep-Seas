@@ -35,7 +35,7 @@ public class ElectrolyzerScreen extends AbstractSimiContainerScreen<Electrolyzer
     private static final ResourceLocation ON       = ResourceLocation.fromNamespaceAndPath("create_submarine", "textures/gui/on.png");
     private static final ResourceLocation ON_OVER  = ResourceLocation.fromNamespaceAndPath("create_submarine", "textures/gui/on_over.png");
 
-    private static final ResourceLocation ELECTRON_TUBE = ResourceLocation.fromNamespaceAndPath("create", "electron_tube");
+    private static final ResourceLocation SHAFT = ResourceLocation.fromNamespaceAndPath("create", "shaft");
 
     private static final int BTN_W = 14;
     private static final int BTN_H = 15;
@@ -130,7 +130,7 @@ public class ElectrolyzerScreen extends AbstractSimiContainerScreen<Electrolyzer
         graphics.fill(x + 1, y + 1, x + 18, y + 18, 0xFFFFFFFF);
         graphics.fill(x + 1, y + 1, x + 17, y + 17, 0xFF8B8B8B);
         if (!menu.getSlot(0).hasItem()) {
-            graphics.renderFakeItem(new ItemStack(BuiltInRegistries.ITEM.get(ELECTRON_TUBE)), x + 1, y + 1);
+            graphics.renderFakeItem(new ItemStack(BuiltInRegistries.ITEM.get(SHAFT)), x + 1, y + 1);
             graphics.pose().pushPose();
             graphics.pose().translate(0, 0, 200);
             graphics.fill(x + 1, y + 1, x + 17, y + 17, 0xAA8B8B8B);

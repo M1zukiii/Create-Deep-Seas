@@ -30,12 +30,15 @@ import com.maxenonyme.createsubmarine.submarine.block.entity.renderer.CommandSub
 import com.maxenonyme.createsubmarine.submarine.block.entity.renderer.PulleyBlockEntityRenderer;
 import com.maxenonyme.createsubmarine.submarine.block.entity.renderer.PumpControllerRenderer;
 import com.maxenonyme.createsubmarine.submarine.block.entity.renderer.PumpControllerVisual;
+import com.maxenonyme.createsubmarine.submarine.block.entity.renderer.SonarRenderer;
 import com.maxenonyme.createsubmarine.submarine.block.propeller.submarine_propeller.SubmarinePropellerRenderer;
 import com.maxenonyme.createsubmarine.submarine.block.propeller.submarine_propeller.SubmarinePropellerVisual;
 import com.maxenonyme.createsubmarine.submarine.client.ClientSteelCableItemHandler;
 import com.maxenonyme.createsubmarine.submarine.client.CommandSubClientHandler;
 import com.maxenonyme.createsubmarine.submarine.client.CommandSubDiagram;
+import com.maxenonyme.createsubmarine.submarine.client.SonarView;
 import com.maxenonyme.createsubmarine.submarine.client.DeepSeasUpdateScreen;
+import com.maxenonyme.createsubmarine.submarine.client.DeepSeasSafetyScreen;
 import com.maxenonyme.createsubmarine.submarine.client.DeepSeasWelcomeScreen;
 import com.maxenonyme.createsubmarine.submarine.client.HullStrengthConfigScreen;
 import com.maxenonyme.createsubmarine.submarine.client.LithostitchedMissingScreen;
@@ -63,6 +66,17 @@ public final class CreateSubmarineClient {
         modEventBus.addListener(CreateSubmarineClient::onRegisterScreens);
         modEventBus.addListener(CreateSubmarineClient::onRegisterClientExtensions);
         com.maxenonyme.createsubmarine.submarine.util.CrackUtil.setChecker(SubLevelCrackRenderer::hasCrack);
+        com.maxenonyme.createsubmarine.submarine.network.ImplosionFxPayload.handler = (payload, context) -> context
+                .enqueueWork(() -> com.maxenonyme.createsubmarine.submarine.client.ImplosionCinematics.accept(payload));
+        NeoForge.EVENT_BUS.register(com.maxenonyme.createsubmarine.submarine.client.ImplosionCinematics.class);
+        com.maxenonyme.createsubmarine.submarine.network.DiagnosticPayload.handler = (payload, context) -> context.enqueueWork(() -> {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            for (com.maxenonyme.createsubmarine.submarine.block.entity.CommandSubBlockEntity be
+                    : com.maxenonyme.createsubmarine.submarine.block.entity.CommandSubBlockEntity.LOADED_ON_CLIENT) {
+                if (!be.isRemoved() && be.getLevel() == mc.level && be.getBlockPos().equals(payload.console()))
+                    be.report = payload;
+            }
+        });
         com.maxenonyme.createsubmarine.submarine.network.SubCrackPayload.handler = (payload, context) -> {
             context.enqueueWork(() -> {
                 SubLevelCrackRenderer.updateCrack(
@@ -74,6 +88,8 @@ public final class CreateSubmarineClient {
 
         NeoForge.EVENT_BUS.addListener(
                 DeepSeasWelcomeScreen::onScreenOpening);
+        NeoForge.EVENT_BUS.addListener(
+                DeepSeasSafetyScreen::onScreenOpening);
         NeoForge.EVENT_BUS.addListener(
                 LithostitchedMissingScreen::onScreenOpening);
         NeoForge.EVENT_BUS.addListener(
@@ -90,11 +106,17 @@ public final class CreateSubmarineClient {
         NeoForge.EVENT_BUS
                 .addListener(CommandSubClientHandler::onClientTick);
         NeoForge.EVENT_BUS
+                .addListener(CommandSubClientHandler::onRenderStage);
+        NeoForge.EVENT_BUS
+                .addListener(com.maxenonyme.createsubmarine.submarine.client.VeilUploadGuard::onRenderStage);
+        NeoForge.EVENT_BUS
                 .addListener(CommandSubClientHandler::onUseKey);
         NeoForge.EVENT_BUS
                 .addListener(CommandSubClientHandler::onKey);
         NeoForge.EVENT_BUS
                 .addListener(CommandSubDiagram::onFrameEnd);
+        NeoForge.EVENT_BUS
+                .addListener(SonarView::onFrameEnd);
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e) -> {
             SubLevelCrackRenderer.clearAll();
             SubLevelRegistry.clearAll();
@@ -127,6 +149,9 @@ public final class CreateSubmarineClient {
         event.registerBlockEntityRenderer(
                 CreateSubmarine.PUMP_CONTROLLER_BE.get(),
                 PumpControllerRenderer::new);
+        event.registerBlockEntityRenderer(
+                CreateSubmarine.SONAR_BE.get(),
+                SonarRenderer::new);
     }
 
     private static void onRegisterClientExtensions(

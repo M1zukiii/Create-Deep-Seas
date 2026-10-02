@@ -2,6 +2,7 @@ package com.maxenonyme.createsubmarine.submarine.client;
 
 import com.maxenonyme.createsubmarine.submarine.block.entity.CommandSubBlockEntity;
 import com.maxenonyme.createsubmarine.submarine.block.entity.renderer.CommandSubRenderer;
+import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import dev.ryanhcode.sable.companion.math.Pose3dc;
@@ -26,7 +27,8 @@ public final class CommandSubDiagram {
     }
 
     private static final int PIXELS_PER_UNIT = 4;
-    private static final long FRAME_NANOS = 100_000_000L;
+    private static final long FRAME_NANOS = 500_000_000L;
+    private static final long REFRESH_NANOS = 10_000_000_000L;
     private static final long FORGET_NANOS = 5_000_000_000L;
 
     public static boolean drawing;
@@ -37,6 +39,7 @@ public final class CommandSubDiagram {
         AdvancedFbo result;
         long lastDraw;
         long lastSeen;
+        int edits = -1;
 
         void free() {
             if (result != null)
@@ -80,6 +83,10 @@ public final class CommandSubDiagram {
             SubLevel sub = Sable.HELPER.getContaining(be);
             if (!(sub instanceof ClientSubLevel csl) || csl.isRemoved() || csl.getPlot() == null)
                 continue;
+            int edits = CompartmentTracker.clientEdits(csl.getUniqueId());
+            if (frames.result != null && edits == frames.edits && now - frames.lastDraw < REFRESH_NANOS)
+                continue;
+            frames.edits = edits;
             frames.lastDraw = now;
             draw(csl, frames, event.getPartialTick().getGameTimeDeltaPartialTick(true));
             drew = true;

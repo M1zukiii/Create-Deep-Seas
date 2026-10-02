@@ -1,12 +1,14 @@
 package com.maxenonyme.createsubmarine.submarine.client;
 
 import com.maxenonyme.createsubmarine.submarine.block.entity.CommandSubBlockEntity;
+import com.maxenonyme.createsubmarine.submarine.block.entity.SonarBlockEntity;
 import com.maxenonyme.createsubmarine.submarine.block.entity.renderer.CommandSubRenderer;
 import com.maxenonyme.createsubmarine.submarine.network.CommandSubPayload;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Camera;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -17,6 +19,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -28,11 +31,19 @@ public final class CommandSubClientHandler {
 
     public static final int FIELD = 0;
     public static final int SPEED_FIRST = 1;
+    public static final int NEXT = 4;
+    public static final int EXPAND = 5;
+    public static final int PREV = 6;
+    public static final int AUTOPILOT = 7;
+    public static final int DIAGNOSE = 9;
+    public static final int PAGES = 4;
 
     private static final int MAX_DIGITS = 4;
 
     private static CommandSubBlockEntity hoveredConsole;
     private static int hoveredWidget = -1;
+    private static float hoveredU;
+    private static float hoveredV;
 
     private static boolean clickLatched;
 
@@ -41,6 +52,10 @@ public final class CommandSubClientHandler {
 
     public static int hoveredWidget(CommandSubBlockEntity be) {
         return be == hoveredConsole ? hoveredWidget : -1;
+    }
+
+    public static float[] cursor(CommandSubBlockEntity be) {
+        return be == hoveredConsole ? new float[] { hoveredU, hoveredV } : null;
     }
 
     public static String typedFor(CommandSubBlockEntity be) {
@@ -81,6 +96,30 @@ public final class CommandSubClientHandler {
         clickLatched = true;
 
         mc.player.playSound(SoundEvents.UI_BUTTON_CLICK.value(), 0.25f, 1.4f);
+        if (hoveredWidget == EXPAND) {
+            mc.setScreen(new SonarScreen(hoveredConsole));
+            return;
+        }
+        if (hoveredWidget == NEXT || hoveredWidget == PREV) {
+            hoveredConsole.page = (hoveredConsole.page + (hoveredWidget == NEXT ? 1 : PAGES - 1)) % PAGES;
+            hoveredConsole.report = null;
+            hoveredConsole.scanStarted = -1;
+            if (typingConsole == hoveredConsole)
+                cancelTyping();
+            return;
+        }
+        if (hoveredWidget == DIAGNOSE) {
+            hoveredConsole.report = null;
+            hoveredConsole.scanStarted = System.currentTimeMillis();
+            mc.player.playSound(SoundEvents.BEACON_ACTIVATE, 0.2f, 1.8f);
+            PacketDistributor.sendToServer(new CommandSubPayload(hoveredConsole.getBlockPos(), CommandSubPayload.DIAGNOSE, 0));
+            return;
+        }
+        if (hoveredWidget == AUTOPILOT) {
+            PacketDistributor.sendToServer(new CommandSubPayload(hoveredConsole.getBlockPos(), CommandSubPayload.AUTOPILOT,
+                    hoveredConsole.autopilot ? 0 : 1));
+            return;
+        }
         if (hoveredWidget == FIELD) {
             typingConsole = hoveredConsole;
             typed.setLength(0);
@@ -151,8 +190,6 @@ public final class CommandSubClientHandler {
     }
 
     public static void onClientTick(ClientTickEvent.Post event) {
-        hoveredConsole = null;
-        hoveredWidget = -1;
         Minecraft mc = Minecraft.getInstance();
         if (!mc.options.keyAttack.isDown())
             clickLatched = false;
@@ -160,11 +197,20 @@ public final class CommandSubClientHandler {
                 || Sable.HELPER.distanceSquaredWithSubLevels(mc.level, mc.player.getEyePosition(),
                         Vec3.atCenterOf(typingConsole.getBlockPos())) > 64))
             cancelTyping();
+    }
+
+    public static void onRenderStage(RenderLevelStageEvent event) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_SKY)
+            return;
+        hoveredConsole = null;
+        hoveredWidget = -1;
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null || mc.screen != null)
             return;
 
-        Vec3 eye = mc.player.getEyePosition();
-        Vec3 look = mc.player.getViewVector(1f);
+        Camera camera = event.getCamera();
+        Vec3 eye = camera.getPosition();
+        Vec3 look = new Vec3(camera.getLookVector());
         double reach = mc.player.blockInteractionRange();
         HitResult hit = mc.hitResult;
         BlockPos hitPos = hit instanceof BlockHitResult bhr && hit.getType() == HitResult.Type.BLOCK ? bhr.getBlockPos() : null;
@@ -207,13 +253,30 @@ public final class CommandSubClientHandler {
             if (t * limit < best) {
                 best = t * limit;
                 hoveredConsole = be;
-                hoveredWidget = widgetAt(u, v);
+                hoveredWidget = widgetAt(be, u, v);
+                hoveredU = u;
+                hoveredV = v;
             }
         }
     }
 
-    private static int widgetAt(float u, float v) {
-        if (inside(CommandSubRenderer.FIELD, u, v))
+    private static int widgetAt(CommandSubBlockEntity be, float u, float v) {
+        if (inside(CommandSubRenderer.NEXT, u, v))
+            return NEXT;
+        if (inside(CommandSubRenderer.PREV, u, v))
+            return PREV;
+        if (be.page == 1)
+            return inside(CommandSubRenderer.EXPAND, u, v) && SonarBlockEntity.onSameSub(be) != null ? EXPAND : -1;
+        if (be.page == 3) {
+            if (CommandSubRenderer.scanning(be))
+                return -1;
+            return inside(be.report == null ? CommandSubRenderer.DIAG_RUN : CommandSubRenderer.DIAG_RERUN, u, v)
+                    ? DIAGNOSE : -1;
+        }
+        if (be.page == 2) {
+            return inside(CommandSubRenderer.AUTO, u, v) && SonarBlockEntity.onSameSub(be) != null ? AUTOPILOT : -1;
+        }
+        if (inside(CommandSubRenderer.FIELD, u, v) && !CommandSubRenderer.autoSteering(be))
             return FIELD;
         for (int i = 0; i < CommandSubRenderer.SPEEDS.length; i++) {
             if (inside(CommandSubRenderer.SPEEDS[i], u, v))

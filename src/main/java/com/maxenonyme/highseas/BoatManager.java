@@ -12,6 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.neoforged.api.distmarker.Dist;
@@ -38,17 +39,21 @@ public final class BoatManager {
 
     private static final int RESCAN_INTERVAL = 2;
     private static final int FAST_INTERVAL = 1;
-    private static final int COVER_REFRESH = 40;
+    private static final int COVER_REFRESH = 200;
+    private static final int SCAN_BUDGET = 40000;
+    private static final long AWAY_TICKS = 60;
 
     private static final class Boat {
         long lastScan;
         boolean registered;
-        Set<BlockPos> flooded = Set.of();
-        Map<BlockPos, Integer> dry = Map.of();
-        Map<BlockPos, Long> under = Map.of();
         CompartmentDetector.Result cover;
+        CompartmentDetector.Result pushed;
+        CompartmentDetector.IncrementalScanState scan;
+        int scanVersion;
         long coverTick = Long.MIN_VALUE / 2;
         int version = -1;
+        long awaySince = -1;
+        Map<BlockPos, Long> under = Map.of();
     }
 
     private static final Map<UUID, Boat> CLIENT = new HashMap<>();
@@ -109,26 +114,47 @@ public final class BoatManager {
             }
             boat.lastScan = now;
 
+            if (afloat(level, sub)) {
+                boat.awaySince = -1;
+            } else {
+                if (boat.awaySince < 0)
+                    boat.awaySince = now;
+                if (!boat.registered || now - boat.awaySince >= AWAY_TICKS) {
+                    if (boat.registered)
+                        release(id, boat);
+                    boat.scan = null;
+                    boat.cover = null;
+                    boat.version = -1;
+                    continue;
+                }
+            }
+
             int version = CompartmentTracker.structureVersion(id);
-            if (boat.version != version || now - boat.coverTick >= COVER_REFRESH) {
-                boat.cover = underCover(sub, CompartmentDetector.detect(sub));
+            if (boat.scan == null && (boat.version != version || now - boat.coverTick >= COVER_REFRESH)) {
+                boat.scan = CompartmentDetector.beginScan(sub);
+                boat.scanVersion = version;
+            }
+            if (boat.scan != null && CompartmentDetector.stepScan(boat.scan, SCAN_BUDGET)) {
+                boat.cover = underCover(sub, CompartmentDetector.finishScan(boat.scan));
+                boat.scan = null;
                 boat.coverTick = now;
-                boat.version = version;
+                boat.version = boat.scanVersion;
             }
             CompartmentDetector.Result pushed = boat.cover;
 
             if (pushed != null) {
-                CompartmentTracker.setFloodedAnchors(id, flooding(level, sub, pushed, boat));
-                CompartmentTracker.update(id, sub, pushed, now);
+                CompartmentTracker.setSunken(id, sunken(level, sub, pushed, boat, now));
+                if (pushed != boat.pushed || !boat.registered
+                        || CompartmentTracker.getCompartments(id) != pushed.components()) {
+                    CompartmentTracker.update(id, sub, pushed, now);
+                    boat.pushed = pushed;
+                } else {
+                    CompartmentTracker.touch(id, sub, now);
+                }
                 boat.registered = true;
                 BOATS.put(id, sub);
             } else if (boat.registered) {
-                boat.flooded = Set.of();
-                boat.dry = Map.of();
-                boat.under = Map.of();
-                CompartmentTracker.remove(id);
-                boat.registered = false;
-                BOATS.remove(id);
+                release(id, boat);
             }
         }
 
@@ -144,68 +170,85 @@ public final class BoatManager {
         }
     }
 
-    private static final double SWAMP_ENGAGE = 0.5;
-    private static final double SWAMP_RELEASE = 0.2;
-    private static final int DRY_SCANS = 10;
     private static final long DROWN_TICKS = 40;
-    private static final Direction[] HULL_SIDES = {
-            Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST };
 
-    private static Set<BlockPos> flooding(Level level, SubLevel sub, CompartmentDetector.Result r, Boat boat) {
-        Set<BlockPos> solid = r.solidBlocks() == null ? Set.of() : r.solidBlocks();
+    private static void release(UUID id, Boat boat) {
+        boat.pushed = null;
+        boat.under = Map.of();
+        CompartmentTracker.remove(id);
+        boat.registered = false;
+        BOATS.remove(id);
+    }
+
+    private static boolean afloat(Level level, SubLevel sub) {
+        LevelPlot plot = sub.getPlot();
+        if (plot == null)
+            return false;
+        BoundingBox3ic b = plot.getBoundingBox();
         Pose3dc pose = sub.logicalPose();
-        Set<BlockPos> flooded = new HashSet<>();
-        Map<BlockPos, Integer> dry = new HashMap<>();
-        Map<BlockPos, Long> under = new HashMap<>();
-        long now = level.getGameTime();
+        Vector3d corner = new Vector3d();
+        double low = Double.POSITIVE_INFINITY;
+        double high = Double.NEGATIVE_INFINITY;
+        for (int i = 0; i < 8; i++) {
+            corner.set((i & 1) == 0 ? b.minX() : b.maxX() + 1, (i & 2) == 0 ? b.minY() : b.maxY() + 1,
+                    (i & 4) == 0 ? b.minZ() : b.maxZ() + 1);
+            pose.transformPosition(corner);
+            low = Math.min(low, corner.y);
+            high = Math.max(high, corner.y);
+        }
+        Vector3dc centre = pose.position();
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos(Mth.floor(centre.x()), Mth.floor(high) + 1,
+                Mth.floor(centre.z()));
+        if (CompartmentTracker.realFluidState(level, cursor).is(FluidTags.WATER))
+            return false;
+        for (int y = Mth.floor(high); y >= Mth.floor(low); y--) {
+            if (CompartmentTracker.realFluidState(level, cursor.setY(y)).is(FluidTags.WATER))
+                return true;
+        }
+        return false;
+    }
 
+    private static Set<BlockPos> sunken(Level level, SubLevel sub, CompartmentDetector.Result r, Boat boat, long now) {
+        Pose3dc pose = sub.logicalPose();
+        Map<BlockPos, Long> under = new HashMap<>();
+        Set<BlockPos> sunk = new HashSet<>();
+        boolean instant = !SubmarineConfig.progressiveFlooding();
+        Set<BlockPos> walls = r.solidBlocks() == null ? Set.of() : r.solidBlocks();
         for (CompartmentDetector.Component c : r.components()) {
             BlockPos anchor = c.anchor();
             if (anchor == null)
                 continue;
-            double wet = openWetness(level, pose, solid, c);
-            boolean sunk = false;
-            if (drowned(level, pose, c)) {
-                long since = boat.under.getOrDefault(anchor, now);
-                under.put(anchor, since);
-                sunk = now - since >= DROWN_TICKS;
-            }
-            if (wet >= SWAMP_ENGAGE || breached(level, pose, solid, c) || sunk) {
-                flooded.add(anchor);
-                dry.put(anchor, 0);
-            } else if (boat.flooded.contains(anchor)) {
-                int clear = wet <= SWAMP_RELEASE ? boat.dry.getOrDefault(anchor, 0) + 1 : 0;
-                if (clear < DRY_SCANS) {
-                    flooded.add(anchor);
-                    dry.put(anchor, clear);
-                }
-            }
-        }
-        boat.flooded = flooded;
-        boat.dry = dry;
-        boat.under = under;
-        return flooded;
-    }
-
-    private static double openWetness(Level level, Pose3dc pose, Set<BlockPos> solid,
-            CompartmentDetector.Component c) {
-        Vector3d w = new Vector3d();
-        int wet = 0, total = 0;
-        for (BlockPos p : c.internal()) {
-            BlockPos up = p.above();
-            if (solid.contains(up) || c.internal().contains(up))
+            if (instant && leaks(level, pose, c, walls)) {
+                sunk.add(anchor);
                 continue;
-            total++;
-            w.set(up.getX() + 0.5, up.getY() + 0.5, up.getZ() + 0.5);
-            pose.transformPosition(w);
-            if (CompartmentTracker.realFluidState(level, BlockPos.containing(w.x, w.y, w.z))
-                    .is(FluidTags.WATER))
-                wet++;
+            }
+            if (!topUnderwater(level, pose, c))
+                continue;
+            long since = boat.under.getOrDefault(anchor, now);
+            under.put(anchor, since);
+            if (now - since >= DROWN_TICKS)
+                sunk.add(anchor);
         }
-        return total == 0 ? 0.0 : (double) wet / total;
+        boat.under = under;
+        return sunk;
     }
 
-    private static boolean drowned(Level level, Pose3dc pose, CompartmentDetector.Component c) {
+    private static boolean leaks(Level level, Pose3dc pose, CompartmentDetector.Component c, Set<BlockPos> walls) {
+        Vector3d w = new Vector3d();
+        for (BlockPos p : c.internal()) {
+            for (Direction dir : Direction.values()) {
+                BlockPos n = p.relative(dir);
+                if (c.internal().contains(n) || walls.contains(n))
+                    continue;
+                pose.transformPosition(w.set(n.getX() + 0.5, n.getY() + 0.5, n.getZ() + 0.5));
+                if (CompartmentTracker.realFluidState(level, BlockPos.containing(w.x, w.y, w.z)).is(FluidTags.WATER))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean topUnderwater(Level level, Pose3dc pose, CompartmentDetector.Component c) {
         Vector3d w = new Vector3d();
         Vector3d top = null;
         for (BlockPos p : c.internal()) {
@@ -218,25 +261,8 @@ public final class BoatManager {
                 .is(FluidTags.WATER);
     }
 
-    private static boolean breached(Level level, Pose3dc pose, Set<BlockPos> solid,
-            CompartmentDetector.Component c) {
-        Vector3d w = new Vector3d();
-        for (BlockPos p : c.internal()) {
-            for (Direction dir : HULL_SIDES) {
-                BlockPos gap = p.relative(dir);
-                if (solid.contains(gap) || c.internal().contains(gap))
-                    continue;
-                w.set(gap.getX() + 0.5, gap.getY() + 0.5, gap.getZ() + 0.5);
-                pose.transformPosition(w);
-                if (CompartmentTracker.realFluidState(level, BlockPos.containing(w.x, w.y, w.z))
-                        .is(FluidTags.WATER))
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    private static final int WEST = 1, EAST = 2, NORTH = 4, SOUTH = 8, BOXED = WEST | EAST | NORTH | SOUTH;
+    private static final int WEST = 1, EAST = 2, NORTH = 4, SOUTH = 8, FLOOR = 16,
+            BOXED = WEST | EAST | NORTH | SOUTH | FLOOR;
     private static final long MAX_VOLUME = 4_000_000L;
     private static final int MEND_PASSES = 3;
 
@@ -361,6 +387,17 @@ public final class BoatManager {
                     else if (seen)
                         cover[i] |= SOUTH;
                 }
+            }
+        }
+        int layer = dx * dz;
+        for (int column = 0; column < layer; column++) {
+            boolean floored = false;
+            for (int iy = 0; iy < dy; iy++) {
+                int i = iy * layer + column;
+                if (wall[i])
+                    floored = true;
+                else if (floored)
+                    cover[i] |= FLOOR;
             }
         }
         return mend(cover, wall, dx, dy, dz);

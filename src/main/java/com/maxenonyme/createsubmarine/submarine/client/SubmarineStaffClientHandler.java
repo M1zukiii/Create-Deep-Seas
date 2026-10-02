@@ -74,6 +74,10 @@ public class SubmarineStaffClientHandler {
     }
 
     private static void updateLights(Player player, Minecraft mc) {
+        if (!VeilLights.usable()) {
+            freeLights();
+            return;
+        }
         Vec3 look = player.getLookAngle();
 
         float f = player.level().getGameTime() + mc.getTimer().getGameTimeDeltaTicks();

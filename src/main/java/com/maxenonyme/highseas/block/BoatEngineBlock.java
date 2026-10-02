@@ -85,7 +85,10 @@ public class BoatEngineBlock extends HorizontalDirectionalBlock implements Entit
             }
             return null;
         }
-        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+        Direction facing = context.getHorizontalDirection().getOpposite();
+        if (context.getPlayer() != null && context.getPlayer().isShiftKeyDown())
+            facing = facing.getOpposite();
+        return defaultBlockState().setValue(FACING, facing);
     }
 
     @Override

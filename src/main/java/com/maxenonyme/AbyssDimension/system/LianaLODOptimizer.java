@@ -1,7 +1,7 @@
 package com.maxenonyme.AbyssDimension.system;
 
 import com.maxenonyme.AbyssDimension.LianaRegistry;
-import com.maxenonyme.AbyssDimension.block.entity.SubmarineLianaBlockEntity;
+import com.maxenonyme.AbyssDimension.block.SubmarineLianaBlock;
 import com.maxenonyme.createsubmarine.submarine.util.SablePhysicsHelper;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.sublevel.SubLevel;
@@ -15,7 +15,6 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -132,10 +131,10 @@ public final class LianaLODOptimizer {
                 if (anchor == null) continue;
                 ChunkPos anchorLocal = serverSub.getPlot().toLocal(new ChunkPos(anchor));
                 LevelChunk anchorChunk = serverSub.getPlot().getChunk(anchorLocal);
-                BlockEntity rawBe = anchorChunk == null ? null : anchorChunk.getBlockEntity(anchor);
-                if (rawBe instanceof SubmarineLianaBlockEntity be) {
-                    be.setWorldLightLevel(blockLight);
-                }
+                BlockState state = anchorChunk == null ? null : anchorChunk.getBlockState(anchor);
+                if (state != null && state.is(LianaRegistry.LIANA_BLOCK.get())
+                        && state.getValue(SubmarineLianaBlock.LIGHT) != blockLight)
+                    level.setBlock(anchor, state.setValue(SubmarineLianaBlock.LIGHT, blockLight), Block.UPDATE_CLIENTS);
             }
         }
 

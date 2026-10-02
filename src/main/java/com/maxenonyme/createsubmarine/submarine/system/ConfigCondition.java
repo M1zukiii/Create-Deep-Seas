@@ -7,7 +7,6 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.fml.loading.FMLEnvironment;
 
 public class ConfigCondition implements ICondition {
     public static final ResourceLocation NAME = ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "config_enabled");
@@ -31,7 +30,7 @@ public class ConfigCondition implements ICondition {
     @Override
     public boolean test(IContext context) {
         if (configKey.equalsIgnoreCase("enableAbyssDimension")) {
-            return !FMLEnvironment.production;
+            return com.maxenonyme.AbyssDimension.CreateAbyss.enabled();
         }
         if (!SubmarineConfig.COMMON_SPEC.isLoaded()) {
             return false;

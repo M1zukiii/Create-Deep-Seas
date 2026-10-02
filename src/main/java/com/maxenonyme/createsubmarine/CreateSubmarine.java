@@ -162,6 +162,13 @@ public class CreateSubmarine {
                                         () -> BlockEntityType.Builder.of(
                                                         CommandSubBlockEntity::new,
                                                         COMMAND_SUB.get()).build(null));
+        public static final Supplier<Block> SONAR = BLOCKS.register("sonar",
+                        () -> new SonarBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.COPPER_BLOCK)
+                                        .requiresCorrectToolForDrops().noOcclusion().lightLevel(state -> 6)));
+        public static final Supplier<Item> SONAR_ITEM = ITEMS.register("sonar",
+                        () -> new net.minecraft.world.item.BlockItem(SONAR.get(), new Item.Properties()));
+        public static final Supplier<BlockEntityType<SonarBlockEntity>> SONAR_BE = BLOCK_ENTITIES.register("sonar",
+                        () -> BlockEntityType.Builder.of(SonarBlockEntity::new, SONAR.get()).build(null));
         public static final Supplier<Block> PUMP_CONTROLLER = BLOCKS.register("pump_controller",
                         () -> new PumpControllerBlock(
                                         BlockBehaviour.Properties.ofFullCopy(Blocks.COPPER_BLOCK)
@@ -225,12 +232,18 @@ public class CreateSubmarine {
                                         () -> BlockEntityType.Builder
                                                         .of(OxygeneDiffuserBlockEntity::new, OXYGENE_DIFFUSER.get())
                                                         .build(null));
+        public static final Supplier<SoundEvent> INDUSTRIAL_ALARM_SOUND = SOUNDS.register("industrial_alarm",
+                        () -> SoundEvent.createVariableRangeEvent(
+                                        ResourceLocation.fromNamespaceAndPath(MOD_ID, "industrial_alarm")));
         public static final Supplier<SoundEvent> IMPLOSION_SOUND = SOUNDS.register("implosion",
                         () -> SoundEvent.createVariableRangeEvent(
                                         ResourceLocation.fromNamespaceAndPath(MOD_ID, "implosion")));
         public static final Supplier<SoundEvent> UNDERWATER_EXPLOSION_SOUND = SOUNDS.register("explosionunderwater",
                         () -> SoundEvent.createVariableRangeEvent(
                                         ResourceLocation.fromNamespaceAndPath(MOD_ID, "explosionunderwater")));
+        public static final Supplier<SoundEvent> TINNITUS_SOUND = SOUNDS.register("acouphene",
+                        () -> SoundEvent.createVariableRangeEvent(
+                                        ResourceLocation.fromNamespaceAndPath(MOD_ID, "acouphene")));
         public static final Supplier<SoundEvent> IMPACT_EXPLOSION_SOUND = SOUNDS.register("impact_explosion_03",
                         () -> SoundEvent.createVariableRangeEvent(
                                         ResourceLocation.fromNamespaceAndPath(MOD_ID, "impact_explosion_03")));
@@ -249,9 +262,10 @@ public class CreateSubmarine {
                                                         .build(null));
         public static final Supplier<Block> INDUSTRIAL_ALARM = BLOCKS.register("industrial_alarm",
                         () -> new IndustrialAlarmBlock(
-                                        BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).noOcclusion()));
+                                        BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).noOcclusion()
+                                                        .lightLevel(state -> state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT) ? 15 : 0)));
         public static final Supplier<Item> INDUSTRIAL_ALARM_ITEM = ITEMS.register("industrial_alarm",
-                        () -> new net.minecraft.world.item.BlockItem(INDUSTRIAL_ALARM.get(), new Item.Properties()));
+                        () -> new IndustrialAlarmItem(INDUSTRIAL_ALARM.get(), new Item.Properties()));
         public static final Supplier<BlockEntityType<IndustrialAlarmBlockEntity>> INDUSTRIAL_ALARM_BE = BLOCK_ENTITIES
                         .register(
                                         "industrial_alarm",
@@ -386,6 +400,9 @@ public class CreateSubmarine {
                 NeoForge.EVENT_BUS.addListener(SubmarinePressureSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarinePressureSystem::onBlockBroken);
                 NeoForge.EVENT_BUS.addListener(SubmarineSinkingSystem::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.ImplosionSequence::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.compartment.FloodSystem::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.compartment.FloodSystem::onPhysicsTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineInteractionSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(PhysicsWakeSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(
@@ -409,6 +426,10 @@ public class CreateSubmarine {
                 NeoForge.EVENT_BUS.addListener(
                                 SubmarineLifecycleHandler::onPlayerLoggedIn);
                 NeoForge.EVENT_BUS.addListener(
+                                com.maxenonyme.createsubmarine.submarine.compartment.BreachLedger::onServerStarted);
+                NeoForge.EVENT_BUS.addListener(
+                                com.maxenonyme.createsubmarine.submarine.compartment.BreachLedger::onLogin);
+                NeoForge.EVENT_BUS.addListener(
                                 SubLevelCableCleanup::onLevelLoad);
 
                 modEventBus.addListener(this::registerCapabilities);
@@ -424,6 +445,14 @@ public class CreateSubmarine {
                                 com.maxenonyme.createsubmarine.submarine.network.SubLevelBoundsPayload.TYPE,
                                 com.maxenonyme.createsubmarine.submarine.network.SubLevelBoundsPayload.CODEC,
                                 com.maxenonyme.createsubmarine.submarine.network.SubLevelBoundsPayload::handle);
+                registrar.playToClient(
+                                com.maxenonyme.createsubmarine.submarine.network.DiagnosticPayload.TYPE,
+                                com.maxenonyme.createsubmarine.submarine.network.DiagnosticPayload.CODEC,
+                                com.maxenonyme.createsubmarine.submarine.network.DiagnosticPayload::handle);
+                registrar.playToClient(
+                                com.maxenonyme.createsubmarine.submarine.network.BreachSyncPayload.TYPE,
+                                com.maxenonyme.createsubmarine.submarine.network.BreachSyncPayload.CODEC,
+                                com.maxenonyme.createsubmarine.submarine.network.BreachSyncPayload::handle);
                 registrar.playToClient(
                                 com.maxenonyme.createsubmarine.submarine.network.SubCrackPayload.TYPE,
                                 com.maxenonyme.createsubmarine.submarine.network.SubCrackPayload.CODEC,
@@ -448,6 +477,10 @@ public class CreateSubmarine {
                                 com.maxenonyme.createsubmarine.submarine.network.CameraShakePayload.TYPE,
                                 com.maxenonyme.createsubmarine.submarine.network.CameraShakePayload.CODEC,
                                 com.maxenonyme.createsubmarine.submarine.network.CameraShakePayload::handle);
+                registrar.playToClient(
+                                com.maxenonyme.createsubmarine.submarine.network.ImplosionFxPayload.TYPE,
+                                com.maxenonyme.createsubmarine.submarine.network.ImplosionFxPayload.CODEC,
+                                com.maxenonyme.createsubmarine.submarine.network.ImplosionFxPayload::handle);
                 registrar.playToClient(
                                 com.maxenonyme.createsubmarine.submarine.network.CableStrandRemovePayload.TYPE,
                                 com.maxenonyme.createsubmarine.submarine.network.CableStrandRemovePayload.CODEC,
@@ -525,6 +558,8 @@ public class CreateSubmarine {
         }
 
         private void onConfigLoaded(net.neoforged.fml.event.config.ModConfigEvent event) {
+                if (event instanceof net.neoforged.fml.event.config.ModConfigEvent.Unloading)
+                        return;
                 if (event.getConfig().getSpec() == SubmarineConfig.COMMON_SPEC) {
                         com.maxenonyme.createsubmarine.worldgen.OceanDepthOffset.refreshConfig();
                 } else if (event.getConfig().getSpec() == SubmarineConfig.SERVER_SPEC) {
@@ -619,6 +654,10 @@ public class CreateSubmarine {
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "barometer"), subSection);
                         tabItems.add(COMMAND_SUB_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "command_sub"), subSection);
+                        tabItems.add(SONAR_ITEM::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "sonar"), subSection);
+                        tabItems.add(INDUSTRIAL_ALARM_ITEM::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "industrial_alarm"), subSection);
                         tabItems.add(PUMP_CONTROLLER_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "pump_controller"), subSection);
                         tabItems.add(ARRESTING_HOOK_ITEM::get);

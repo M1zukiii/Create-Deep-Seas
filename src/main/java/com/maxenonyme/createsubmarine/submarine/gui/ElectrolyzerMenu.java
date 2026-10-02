@@ -42,7 +42,7 @@ public class ElectrolyzerMenu extends AbstractContainerMenu {
         addSlot(new SlotItemHandler(module, 0, MODULE_X, MODULE_Y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
-                return ElectrolyzerBlockEntity.isElectronTube(stack);
+                return ElectrolyzerBlockEntity.isShaft(stack);
             }
         });
 
@@ -67,7 +67,7 @@ public class ElectrolyzerMenu extends AbstractContainerMenu {
         if (index == 0) {
             if (!moveItemStackTo(stack, 1, slots.size(), true))
                 return ItemStack.EMPTY;
-        } else if (!ElectrolyzerBlockEntity.isElectronTube(stack) || !moveItemStackTo(stack, 0, 1, false)) {
+        } else if (!ElectrolyzerBlockEntity.isShaft(stack) || !moveItemStackTo(stack, 0, 1, false)) {
             return ItemStack.EMPTY;
         }
         if (stack.isEmpty())

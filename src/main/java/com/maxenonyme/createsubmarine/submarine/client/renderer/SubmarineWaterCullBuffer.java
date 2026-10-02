@@ -10,6 +10,7 @@ import dev.ryanhcode.sable.sublevel.water_occlusion.WaterOcclusionRegion;
 import dev.ryanhcode.sable.util.BoundedBitVolume3i;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -30,16 +31,29 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.EmptyBlockGetter;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.neoforged.fml.ModList;
+import java.util.function.Predicate;
 
 public final class SubmarineWaterCullBuffer {
     private static final double POSE_MOVE_THRESHOLD_SQ = 0.01;
+    private static final double PIXEL_PERFECT_MOVE_THRESHOLD_SQ = 0.25;
     private static final double DEFAULT_RADIUS = 16.0;
     private static final int WET_SCAN_INTERVAL = 5;
+    private static final boolean SODIUM = ModList.get().isLoaded("sodium");
+    private static final Predicate<BlockState> HIDDEN_IN_HULL = state -> !state.isAir() && !state.is(Blocks.WATER);
 
     private static final Map<UUID, WaterOcclusionRegion> regions = new HashMap<>();
     private static final Map<UUID, Vector3d> lastClientPose = new ConcurrentHashMap<>();
     private static final Map<UUID, Collection<BlockPos>> lastBlocks = new HashMap<>();
     private static final Map<UUID, Boolean> lastWet = new HashMap<>();
+    private static final Map<UUID, Integer> lastEdits = new HashMap<>();
     private static long lastWetScanTick = -1;
     private static boolean renderingSubmarineFluid = false;
 
@@ -78,15 +92,21 @@ public final class SubmarineWaterCullBuffer {
         if (container == null)
             return;
 
+        if (SodiumWaterOcclusionBridge.PIXEL_PERFECT_ACTIVE && mc.levelRenderer != null)
+            repairFallbackHoles(mc);
+        double threshold = SodiumWaterOcclusionBridge.PIXEL_PERFECT_ACTIVE ? PIXEL_PERFECT_MOVE_THRESHOLD_SQ
+                : POSE_MOVE_THRESHOLD_SQ;
         Set<UUID> tracked = new HashSet<>(regions.keySet());
         tracked.addAll(lastBlocks.keySet());
         for (UUID id : tracked) {
             SubLevel sub = container.getSubLevel(id);
-            if (sub == null)
+            if (sub == null) {
+                forgetVanished(mc, id);
                 continue;
+            }
             Vector3dc p = sub.logicalPose().position();
             Vector3d last = lastClientPose.get(id);
-            if (last != null && last.distanceSquared(p) < POSE_MOVE_THRESHOLD_SQ)
+            if (last != null && last.distanceSquared(p) < threshold)
                 continue;
 
             double r = computeRadius(id, sub);
@@ -106,6 +126,15 @@ public final class SubmarineWaterCullBuffer {
                 last.set(p);
         }
 
+        for (Map.Entry<UUID, Collection<BlockPos>> e : new HashMap<>(lastBlocks).entrySet()) {
+            int edits = CompartmentTracker.clientEdits(e.getKey());
+            Integer seen = lastEdits.get(e.getKey());
+            if (seen != null && seen != edits) {
+                lastEdits.put(e.getKey(), edits);
+                updateSubmarineOcclusion(e.getKey(), e.getValue());
+            }
+        }
+
         long now = mc.level.getGameTime();
         if (now - lastWetScanTick >= WET_SCAN_INTERVAL) {
             lastWetScanTick = now;
@@ -117,6 +146,23 @@ public final class SubmarineWaterCullBuffer {
                 }
             }
         }
+    }
+
+    private static void forgetVanished(Minecraft mc, UUID id) {
+        AABB stale = CompartmentTracker.getWorldAABB(id);
+        WaterOcclusionContainer<?> occlusion = WaterOcclusionContainer.getContainer(mc.level);
+        WaterOcclusionRegion region = regions.remove(id);
+        if (region != null && occlusion != null)
+            occlusion.removeRegion(region);
+        lastBlocks.remove(id);
+        lastWet.remove(id);
+        lastEdits.remove(id);
+        lastClientPose.remove(id);
+        CompartmentTracker.setOcclusionBlocks(id, null);
+        if (mc.getSingleplayerServer() == null)
+            CompartmentTracker.remove(id);
+        if (stale != null && mc.levelRenderer != null)
+            invalidateSections(mc, stale);
     }
 
     private static boolean waterNearby(Level level, UUID id) {
@@ -162,7 +208,17 @@ public final class SubmarineWaterCullBuffer {
         return Math.max(bb.maxX() - bb.minX(), Math.max(bb.maxY() - bb.minY(), bb.maxZ() - bb.minZ())) * 0.75;
     }
 
+    private static void repairFallbackHoles(Minecraft mc) {
+        for (Long section : List.copyOf(SodiumWaterOcclusionBridge.FALLBACK_HOLES)) {
+            SodiumWaterOcclusionBridge.FALLBACK_HOLES.remove(section);
+            mc.levelRenderer.setSectionDirty(SectionPos.x(section), SectionPos.y(section), SectionPos.z(section));
+        }
+    }
+
     private static void invalidateSections(Minecraft mc, AABB aabb) {
+        if (!SODIUM || mc.level == null)
+            return;
+        boolean fluids = !SodiumWaterOcclusionBridge.PIXEL_PERFECT_ACTIVE;
         int minSx = ((int) Math.floor(aabb.minX)) >> 4;
         int maxSx = ((int) Math.ceil(aabb.maxX)) >> 4;
         int minSy = ((int) Math.floor(aabb.minY)) >> 4;
@@ -170,8 +226,19 @@ public final class SubmarineWaterCullBuffer {
         int minSz = ((int) Math.floor(aabb.minZ)) >> 4;
         int maxSz = ((int) Math.ceil(aabb.maxZ)) >> 4;
         for (int sx = minSx; sx <= maxSx; sx++) {
-            for (int sy = minSy; sy <= maxSy; sy++) {
-                for (int sz = minSz; sz <= maxSz; sz++) {
+            for (int sz = minSz; sz <= maxSz; sz++) {
+                ChunkAccess chunk = mc.level.getChunk(sx, sz, ChunkStatus.FULL, false);
+                if (chunk == null)
+                    continue;
+                for (int sy = minSy; sy <= maxSy; sy++) {
+                    int index = chunk.getSectionIndexFromSectionY(sy);
+                    if (index < 0 || index >= chunk.getSectionsCount())
+                        continue;
+                    LevelChunkSection section = chunk.getSection(index);
+                    if (section.hasOnlyAir() || (!fluids && !section.maybeHas(HIDDEN_IN_HULL)))
+                        continue;
+                    if (fluids)
+                        SodiumWaterOcclusionBridge.FALLBACK_HOLES.remove(SectionPos.asLong(sx, sy, sz));
                     mc.levelRenderer.setSectionDirty(sx, sy, sz);
                 }
             }
@@ -192,10 +259,12 @@ public final class SubmarineWaterCullBuffer {
             if (blocks == null || blocks.isEmpty()) {
                 lastBlocks.remove(id);
                 lastWet.remove(id);
+                lastEdits.remove(id);
                 CompartmentTracker.setOcclusionBlocks(id, null);
                 return;
             }
 
+            lastEdits.put(id, CompartmentTracker.clientEdits(id));
             Collection<BlockPos> previous = lastBlocks.put(id, blocks);
             if (previous == null || previous.size() != blocks.size() || !previous.containsAll(blocks)) {
                 AABB known = CompartmentTracker.getWorldAABB(id);
@@ -246,20 +315,28 @@ public final class SubmarineWaterCullBuffer {
                 continue;
             }
             BlockState state = lastChunk.getBlockState(pos);
-            if (!state.getFluidState().isEmpty())
+            if (state.getBlock() instanceof LiquidBlock)
                 continue;
             boolean fillsCell = state.isAir()
                     || state.isCollisionShapeFullBlock(EmptyBlockGetter.INSTANCE,
                             BlockPos.ZERO);
-            if (fillsCell || isBuriedInShip(id, pos))
+            if (fillsCell || closedByShip(level, sub, id, pos, state))
                 out.add(pos);
         }
         return out;
     }
 
-    private static boolean isBuriedInShip(UUID id, BlockPos pos) {
+    private static boolean closedByShip(Level level, SubLevel sub, UUID id, BlockPos pos, BlockState state) {
+        VoxelShape shape = state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
+        Vector3d world = new Vector3d();
         for (Direction dir : Direction.values()) {
-            if (!CompartmentTracker.isWithinShip(id, pos.relative(dir)))
+            if (Block.isFaceFull(shape, dir))
+                continue;
+            BlockPos next = pos.relative(dir);
+            if (CompartmentTracker.isWithinShip(id, next))
+                continue;
+            sub.logicalPose().transformPosition(world.set(next.getX() + 0.5, next.getY() + 0.5, next.getZ() + 0.5));
+            if (CompartmentTracker.realFluidState(level, BlockPos.containing(world.x, world.y, world.z)).is(FluidTags.WATER))
                 return false;
         }
         return true;

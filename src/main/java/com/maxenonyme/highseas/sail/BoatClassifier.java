@@ -10,7 +10,9 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -23,6 +25,7 @@ public final class BoatClassifier {
     private static final double MIN_SUBMERGED = 0.12;
     private static final int SAMPLES = 5;
     private static final int REFRESH = 20;
+    private static final double KEEL_DEPTH = 4.0;
 
     private record Cached(long tick, Map<UUID, SubLevel> rootMap) {
     }
@@ -36,18 +39,38 @@ public final class BoatClassifier {
         }
         Map<UUID, SubLevel> map = new HashMap<>();
         for (SubLevel s : all) {
-            if (isInWater(parent, s)) {
-                try {
-                    for (SubLevel c : SubLevelHelper.getConnectedChain(s)) {
-                        map.putIfAbsent(c.getUniqueId(), s);
-                    }
-                } catch (Exception e) {
-                    map.putIfAbsent(s.getUniqueId(), s);
+            if (map.containsKey(s.getUniqueId()) || !isInWater(parent, s)) {
+                continue;
+            }
+            Collection<SubLevel> chain;
+            try {
+                chain = SubLevelHelper.getConnectedChain(s);
+            } catch (Exception e) {
+                chain = List.of(s);
+            }
+            SubLevel hull = s;
+            long biggest = volume(s);
+            for (SubLevel c : chain) {
+                long v = volume(c);
+                if (v > biggest && isInWater(parent, c)) {
+                    biggest = v;
+                    hull = c;
                 }
             }
+            for (SubLevel c : chain) {
+                map.put(c.getUniqueId(), hull);
+            }
+            map.put(s.getUniqueId(), hull);
         }
         CACHE.put(parent, new Cached(gameTime, map));
         return map;
+    }
+
+    private static long volume(SubLevel sub) {
+        if (sub.getPlot() == null)
+            return 0L;
+        BoundingBox3ic bb = sub.getPlot().getBoundingBox();
+        return (long) (bb.maxX() - bb.minX() + 1) * (bb.maxY() - bb.minY() + 1) * (bb.maxZ() - bb.minZ() + 1);
     }
 
     public static Set<UUID> boats(Level parent, Iterable<? extends SubLevel> all, long gameTime) {
@@ -68,11 +91,12 @@ public final class BoatClassifier {
         int total = 0;
         Vector3d p = new Vector3d();
         BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
+        double keel = Math.min(bb.maxY() + 1, bb.minY() + KEEL_DEPTH);
         for (int i = 0; i < SAMPLES; i++) {
             for (int j = 0; j < SAMPLES; j++) {
                 for (int k = 0; k < SAMPLES; k++) {
                     p.set(lerp(bb.minX(), bb.maxX() + 1, frac(i)),
-                            lerp(bb.minY(), bb.maxY() + 1, frac(j)),
+                            lerp(bb.minY(), keel, frac(j)),
                             lerp(bb.minZ(), bb.maxZ() + 1, frac(k)));
                     pose.transformPosition(p);
                     m.set((int) Math.floor(p.x), (int) Math.floor(p.y), (int) Math.floor(p.z));

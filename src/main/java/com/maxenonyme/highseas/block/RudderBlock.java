@@ -143,7 +143,7 @@ public class RudderBlock extends WaterloggedCopycatBlock implements BlockSubLeve
 
     @Override
     public void sable$contributeLiftAndDrag(LiftProviderContext ctx, ServerSubLevel subLevel,
-                                            @NotNull Pose3d localPose, double timeStep,
+                                            @Nullable Pose3d localPose, double timeStep,
                                             Vector3dc linearVelocity, Vector3dc angularVelocity,
                                             Vector3d linearImpulse, Vector3d angularImpulse,
                                             @Nullable LiftProviderGroup group) {
@@ -158,8 +158,10 @@ public class RudderBlock extends WaterloggedCopycatBlock implements BlockSubLeve
         LIFT_NORMAL.set(ctx.dir().x(), ctx.dir().y(), ctx.dir().z());
         LIFT_POS.set(ctx.pos().getX() + 0.5, ctx.pos().getY() + 0.5, ctx.pos().getZ() + 0.5);
 
-        localPose.transformNormal(LIFT_NORMAL);
-        localPose.transformPosition(LIFT_POS);
+        if (localPose != null) {
+            localPose.transformNormal(LIFT_NORMAL);
+            localPose.transformPosition(LIFT_POS);
+        }
 
         Pose3d pose = subLevel.logicalPose();
 

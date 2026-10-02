@@ -40,10 +40,11 @@ public class PulleyBlockEntityRenderer implements BlockEntityRenderer<PulleyBloc
 
         ms.pushPose();
         ms.translate(0.5, 0.5, 0.5);
-        ms.mulPose(facingRotation(state.getValue(PulleyBlock.FACING)));
+        boolean inverted = state.getValue(PulleyBlock.INVERTED);
+        ms.mulPose(facingRotation(state.getValue(PulleyBlock.FACING), inverted));
         ms.translate(-0.5, -0.5, -0.5);
         ms.translate(PIVOT_X, PIVOT_Y, PIVOT_Z);
-        ms.mulPose(Axis.ZP.rotation(be.clientWheelAngle));
+        ms.mulPose(Axis.ZP.rotation(inverted ? -be.clientWheelAngle : be.clientWheelAngle));
         ms.translate(-PIVOT_X, -PIVOT_Y, -PIVOT_Z);
 
         float heat = be.getHeat();
@@ -90,7 +91,7 @@ public class PulleyBlockEntityRenderer implements BlockEntityRenderer<PulleyBloc
         be.clientWheelAngle -= (float) (signedSlide * 20.0 / WHEEL_RADIUS * frameSeconds);
     }
 
-    private static Quaternionf facingRotation(Direction facing) {
+    private static Quaternionf facingRotation(Direction facing, boolean inverted) {
         int x = 0;
         int y = 0;
         switch (facing) {
@@ -101,6 +102,8 @@ public class PulleyBlockEntityRenderer implements BlockEntityRenderer<PulleyBloc
             default -> {
             }
         }
+        if (inverted)
+            x += 180;
         return new Quaternionf().rotateYXZ((float) Math.toRadians(-y), (float) Math.toRadians(-x), 0f);
     }
 }

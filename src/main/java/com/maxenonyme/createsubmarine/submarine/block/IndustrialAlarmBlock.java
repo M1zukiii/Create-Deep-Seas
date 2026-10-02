@@ -85,9 +85,8 @@ public class IndustrialAlarmBlock extends DirectionalBlock implements SimpleWate
 
     @Override
     public void animateTick(BlockState state, Level level, BlockPos pos, net.minecraft.util.RandomSource random) {
-        if (state.getValue(BlockStateProperties.LIT) && (level.getGameTime() / 20L) % 2L == 0L) {
+        if (level.getBlockEntity(pos) instanceof IndustrialAlarmBlockEntity alarm && alarm.isShining(level.getGameTime()))
             makeParticle(state, level, pos);
-        }
     }
 
     private void makeParticle(BlockState state, LevelAccessor level, BlockPos pos) {
@@ -112,11 +111,14 @@ public class IndustrialAlarmBlock extends DirectionalBlock implements SimpleWate
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        if (!level.isClientSide) return null;
+        if (level.isClientSide)
+            return (lvl, pos, st, be) -> {
+                if (be instanceof IndustrialAlarmBlockEntity alarm)
+                    alarm.tickClient();
+            };
         return (lvl, pos, st, be) -> {
-            if (be instanceof IndustrialAlarmBlockEntity alarm) {
-                alarm.tickClient(lvl, pos, st);
-            }
+            if (be instanceof IndustrialAlarmBlockEntity alarm)
+                alarm.tickServer();
         };
     }
 

@@ -13,10 +13,11 @@ public final class HighSeasConfig {
     public static double thunderBoost = 1.6;
     public static double windOcclusion = 0.5;
 
-    public static double sailThrust = 1.97;
-    public static double sailBaseThrust = 1.25;
-    public static double sailWindGain = 6.0;
-    public static double sailTrimFloor = 0.57;
+    public static double sailHullSpeed = 4.0;
+    public static double sailMaxSpeed = 14.0;
+    public static double sailUpwindEfficiency = 0.6;
+    public static double sailCanvasNeeded = 0.2;
+    public static double sailResponseTime = 5.0;
     public static int sailScanInterval = 20;
 
     public static double engineThrust = 36.0;
@@ -45,10 +46,11 @@ public final class HighSeasConfig {
     private static final ModConfigSpec.DoubleValue THUNDER_BOOST;
     private static final ModConfigSpec.DoubleValue WIND_OCCLUSION;
 
-    private static final ModConfigSpec.DoubleValue SAIL_THRUST;
-    private static final ModConfigSpec.DoubleValue SAIL_BASE_THRUST;
-    private static final ModConfigSpec.DoubleValue SAIL_WIND_GAIN;
-    private static final ModConfigSpec.DoubleValue SAIL_TRIM_FLOOR;
+    private static final ModConfigSpec.DoubleValue SAIL_HULL_SPEED;
+    private static final ModConfigSpec.DoubleValue SAIL_MAX_SPEED;
+    private static final ModConfigSpec.DoubleValue SAIL_UPWIND_EFFICIENCY;
+    private static final ModConfigSpec.DoubleValue SAIL_CANVAS_NEEDED;
+    private static final ModConfigSpec.DoubleValue SAIL_RESPONSE_TIME;
     private static final ModConfigSpec.IntValue SAIL_SCAN_INTERVAL;
 
     private static final ModConfigSpec.DoubleValue ENGINE_THRUST;
@@ -93,23 +95,25 @@ public final class HighSeasConfig {
         server.pop();
 
         server.push("sails");
-        SAIL_THRUST = server
-                .comment("Overall sail power. The single knob for how fast sailing ships go.",
-                        "Drag is quadratic, so doubling this does NOT double top speed:",
-                        "roughly four times the power is needed to go twice as fast.")
-                .defineInRange("sailPower", 1.97, 0.0, 20.0);
-        SAIL_BASE_THRUST = server
-                .comment("Thrust a sail still gives with no wind at all, per block of canvas.",
-                        "This is what stops a becalmed ship from being stranded.")
-                .defineInRange("sailWindlessThrust", 1.25, 0.0, 20.0);
-        SAIL_WIND_GAIN = server
-                .comment("How much the wind adds on top of the windless thrust, per block of canvas.",
-                        "Raise it to make wind matter more, lower it to make sailing predictable.")
-                .defineInRange("sailWindBonus", 6.0, 0.0, 50.0);
-        SAIL_TRIM_FLOOR = server
-                .comment("Worst-case efficiency when sailing straight into the wind.",
+        SAIL_HULL_SPEED = server
+                .comment("Hull speed coefficient. A fully rigged ship running before the wind",
+                        "cruises at this times the square root of its length, in m/s.",
+                        "4.0 gives about 8 m/s for a 4-block raft and 14 m/s (the cap) for a 13-block ship.")
+                .defineInRange("sailHullSpeed", 4.0, 0.1, 10.0);
+        SAIL_MAX_SPEED = server
+                .comment("Speed no sailing ship can go past, however big it is, in m/s.")
+                .defineInRange("sailMaxSpeed", 14.0, 0.5, 30.0);
+        SAIL_UPWIND_EFFICIENCY = server
+                .comment("Share of its speed a ship keeps when sailing straight into the wind.",
                         "0 = dead in the water against the wind, 1 = heading no longer matters.")
-                .defineInRange("sailUpwindFloor", 0.57, 0.0, 1.0);
+                .defineInRange("sailUpwindEfficiency", 0.6, 0.0, 1.0);
+        SAIL_CANVAS_NEEDED = server
+                .comment("How much canvas a ship needs for its size to reach full speed.",
+                        "Higher means big ships need more sails before they get going.")
+                .defineInRange("sailCanvasNeeded", 0.2, 0.05, 5.0);
+        SAIL_RESPONSE_TIME = server
+                .comment("Seconds a small ship takes to pick up speed. Big ships take up to twice as long.")
+                .defineInRange("sailResponseTime", 5.0, 0.5, 30.0);
         SAIL_SCAN_INTERVAL = server
                 .comment("Ticks between two sweeps looking for sails on a ship.",
                         "Higher is cheaper but slower to notice a sail being added or removed.")
@@ -181,6 +185,8 @@ public final class HighSeasConfig {
     }
 
     public static void onConfig(ModConfigEvent event) {
+        if (event instanceof ModConfigEvent.Unloading)
+            return;
         if (event.getConfig().getSpec() == SERVER_SPEC) {
             pullServer();
         } else if (event.getConfig().getSpec() == CLIENT_SPEC) {
@@ -195,10 +201,11 @@ public final class HighSeasConfig {
         thunderBoost = THUNDER_BOOST.get();
         windOcclusion = WIND_OCCLUSION.get();
 
-        sailThrust = SAIL_THRUST.get();
-        sailBaseThrust = SAIL_BASE_THRUST.get();
-        sailWindGain = SAIL_WIND_GAIN.get();
-        sailTrimFloor = SAIL_TRIM_FLOOR.get();
+        sailHullSpeed = SAIL_HULL_SPEED.get();
+        sailMaxSpeed = SAIL_MAX_SPEED.get();
+        sailUpwindEfficiency = SAIL_UPWIND_EFFICIENCY.get();
+        sailCanvasNeeded = SAIL_CANVAS_NEEDED.get();
+        sailResponseTime = SAIL_RESPONSE_TIME.get();
         sailScanInterval = SAIL_SCAN_INTERVAL.get();
 
         engineThrust = ENGINE_THRUST.get();

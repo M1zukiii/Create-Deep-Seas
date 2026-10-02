@@ -115,8 +115,9 @@ public final class WindDebugRenderer {
                     orientation.transform(wn);
                     if (wn.lengthSquared() > 1.0e-9) {
                         wn.normalize();
-                        double power = SailForce.power(windVec, wn.x, wn.y, wn.z, forward.x, forward.y, forward.z, group.area());
-                        double len = Mth.clamp(power * 0.15, -6.0, 6.0);
+                        double power = SailForce.pointOfSail(windVec, wn.x, wn.y, wn.z, forward.x, forward.y, forward.z)
+                                * SailForce.windFactor(windVec) * group.area();
+                        double len = Mth.clamp(power * 0.5, -6.0, 6.0);
                         if (Math.abs(len) < 0.5) {
                             len = 0.5 * Math.signum(power);
                         }

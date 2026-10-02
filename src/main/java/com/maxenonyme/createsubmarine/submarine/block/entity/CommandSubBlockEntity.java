@@ -15,6 +15,11 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
+import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
+import dev.ryanhcode.sable.companion.math.Pose3dc;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -28,6 +33,7 @@ import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import com.maxenonyme.createsubmarine.submarine.network.CommandSubPayload;
+import com.maxenonyme.createsubmarine.submarine.network.DiagnosticPayload;
 
 public class CommandSubBlockEntity extends BlockEntity {
     public static final Set<CommandSubBlockEntity> LOADED_ON_CLIENT = Collections.newSetFromMap(new WeakHashMap<>());
@@ -43,15 +49,34 @@ public class CommandSubBlockEntity extends BlockEntity {
     public double lastY = Double.NaN;
     public long lastNanos;
     public float shownVs;
+    public int page;
+    public boolean autopilot;
+    public int syncedAutoTarget = -1;
+    public double sonarPanX;
+    public double sonarPanZ;
+    public float sonarZoom = 1.8f;
+    public float sonarYaw;
+    public float sonarOrbit;
 
     public int syncedFill = -1;
     public int syncedPumps;
     public int syncedStatus = 1;
 
+    public DiagnosticPayload report;
+    public long scanStarted = -1;
+    private long lastDiagnostic = -DIAGNOSTIC_COOLDOWN;
+
     private static final float[] RATES = { 0.33f, 0.66f, 1f };
     private static final double BRAKING_MARGIN = 0.6;
     private static final double TRIM_RANGE = 2;
     private static final double TRIM_ACCEL = 1.5;
+    private static final int CLEARANCE = 4;
+    private static final double LOOKAHEAD_SECONDS = 5;
+    private static final int LOOKAHEAD_MIN = 6;
+    private static final int LOOKAHEAD_MAX = 48;
+    private static final int FLOOR_ABOVE = 24;
+    private static final int FLOOR_BELOW = 96;
+    private static final int DIAGNOSTIC_COOLDOWN = 40;
 
     private int tickCount;
     private UUID registeredSub;
@@ -109,13 +134,88 @@ public class CommandSubBlockEntity extends BlockEntity {
             weakest = cachedWeakest;
         }
 
-        if (depth != syncedDepth || weakest != syncedWeakest || surface != surfaceY) {
+        int auto = -1;
+        if (autopilot && sub instanceof SubLevel sl && surface != Integer.MIN_VALUE
+                && SonarBlockEntity.onSameSub(this) != null)
+            auto = followFloor(sl, surface, weakest);
+
+        if (depth != syncedDepth || weakest != syncedWeakest || surface != surfaceY || auto != syncedAutoTarget) {
             syncedDepth = depth;
             syncedWeakest = weakest;
             surfaceY = surface;
+            syncedAutoTarget = auto;
             setChanged();
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
+    }
+
+    private int followFloor(SubLevel sub, int surface, int weakest) {
+        Level ocean = sub.getLevel();
+        Pose3dc pose = sub.logicalPose();
+        BoundingBox3ic box = sub.getPlot().getBoundingBox();
+        Vector3d corner = new Vector3d();
+        double keel = Double.MAX_VALUE;
+        double[] xs = new double[5];
+        double[] zs = new double[5];
+        int n = 0;
+        for (int i = 0; i < 8; i++) {
+            corner.set((i & 1) == 0 ? box.minX() : box.maxX() + 1, (i & 2) == 0 ? box.minY() : box.maxY() + 1,
+                    (i & 4) == 0 ? box.minZ() : box.maxZ() + 1);
+            pose.transformPosition(corner);
+            keel = Math.min(keel, corner.y);
+            if ((i & 2) == 0) {
+                xs[n] = corner.x;
+                zs[n++] = corner.z;
+            }
+        }
+        corner.set((box.minX() + box.maxX() + 1) / 2.0, box.minY(), (box.minZ() + box.maxZ() + 1) / 2.0);
+        pose.transformPosition(corner);
+        xs[4] = corner.x;
+        zs[4] = corner.z;
+
+        Vector3dc velocity = SablePhysicsHelper.getVelocity(sub);
+        double vx = velocity == null ? 0 : velocity.x();
+        double vz = velocity == null ? 0 : velocity.z();
+        double speed = Math.sqrt(vx * vx + vz * vz);
+        double reach = speed < 0.2 ? 0 : Mth.clamp(speed * LOOKAHEAD_SECONDS, LOOKAHEAD_MIN, LOOKAHEAD_MAX);
+        double dx = speed < 0.2 ? 0 : vx / speed;
+        double dz = speed < 0.2 ? 0 : vz / speed;
+
+        int top = (int) Math.floor(keel) + FLOOR_ABOVE;
+        int bottom = Math.max(ocean.getMinBuildHeight(), (int) Math.floor(keel) - FLOOR_BELOW);
+        int highest = Integer.MIN_VALUE;
+        BlockPos.MutableBlockPos p = new BlockPos.MutableBlockPos();
+        for (double ahead = 0; ahead <= reach; ahead += 2) {
+            for (int s = 0; s < 5; s++) {
+                int x = Mth.floor(xs[s] + dx * ahead);
+                int z = Mth.floor(zs[s] + dz * ahead);
+                ChunkAccess chunk = ocean.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, false);
+                if (chunk == null)
+                    continue;
+                for (int y = top; y >= bottom && y >= highest; y--) {
+                    p.set(x, y, z);
+                    if (CompartmentTracker.realBlockState(chunk, p).blocksMotion()) {
+                        highest = Math.max(highest, y + 1);
+                        break;
+                    }
+                }
+            }
+            if (reach == 0)
+                break;
+        }
+        if (highest == Integer.MIN_VALUE)
+            return -1;
+
+        double keelOffset = pose.position().y() - keel;
+        double wantY = highest + CLEARANCE + keelOffset;
+        int target = Math.max(0, (int) Math.floor(surface + 1 - wantY));
+        if (weakest > 0)
+            target = Math.min(target, Math.max(0, weakest - 2));
+        return target;
+    }
+
+    public int activeTarget() {
+        return autopilot && syncedAutoTarget >= 0 ? syncedAutoTarget : targetDepth;
     }
 
     private void steer(SubLevelAccess sub) {
@@ -134,7 +234,7 @@ public class CommandSubBlockEntity extends BlockEntity {
             lastFillTick = now;
         }
         if (sub != null && !Double.isNaN(fill)) {
-            double error = depth(sub) - targetDepth;
+            double error = depth(sub) - activeTarget();
             double maxSpeed = SubmarineConfig.BALLAST_VERTICAL_SPEED.get();
             double modeSpeed = maxSpeed * RATES[speedMode];
             double braking = Math.max(0.02, 2 * maxSpeed * fillRate) * BRAKING_MARGIN;
@@ -158,9 +258,9 @@ public class CommandSubBlockEntity extends BlockEntity {
     }
 
     private void trim(SubLevelAccess sub) {
-        if (sub == null || pumps.isEmpty() || Double.isNaN(lastFill) || targetDepth == 0)
+        if (sub == null || pumps.isEmpty() || Double.isNaN(lastFill) || activeTarget() == 0)
             return;
-        double error = depth(sub) - targetDepth;
+        double error = depth(sub) - activeTarget();
         if (Math.abs(error) > TRIM_RANGE)
             return;
         Object handle = SablePhysicsHelper.getHandle(sub);
@@ -177,6 +277,16 @@ public class CommandSubBlockEntity extends BlockEntity {
 
     private double depth(SubLevelAccess sub) {
         return surfaceY == Integer.MIN_VALUE ? 0 : Math.max(0, surfaceY + 1 - sub.logicalPose().position().y());
+    }
+
+    public boolean mayDiagnose() {
+        if (level == null)
+            return false;
+        long now = level.getGameTime();
+        if (now - lastDiagnostic < DIAGNOSTIC_COOLDOWN)
+            return false;
+        lastDiagnostic = now;
+        return true;
     }
 
     public void reportPump(BlockPos pump, long gameTime) {
@@ -200,6 +310,10 @@ public class CommandSubBlockEntity extends BlockEntity {
             speedMode = value;
         } else if (action == CommandSubPayload.DEPTH) {
             targetDepth = Math.max(0, Math.min(9999, value));
+        } else if (action == CommandSubPayload.AUTOPILOT) {
+            autopilot = value != 0 && SonarBlockEntity.onSameSub(this) != null;
+            if (!autopilot)
+                syncedAutoTarget = -1;
         } else {
             return;
         }
@@ -241,6 +355,8 @@ public class CommandSubBlockEntity extends BlockEntity {
         tag.putInt("Fill", syncedFill);
         tag.putInt("Pumps", syncedPumps);
         tag.putInt("Status", syncedStatus);
+        tag.putBoolean("Autopilot", autopilot);
+        tag.putInt("AutoTarget", syncedAutoTarget);
     }
 
     @Override
@@ -256,6 +372,8 @@ public class CommandSubBlockEntity extends BlockEntity {
         syncedFill = tag.contains("Fill") ? tag.getInt("Fill") : -1;
         syncedPumps = tag.getInt("Pumps");
         syncedStatus = tag.contains("Status") ? tag.getInt("Status") : 1;
+        autopilot = tag.getBoolean("Autopilot");
+        syncedAutoTarget = tag.contains("AutoTarget") ? tag.getInt("AutoTarget") : -1;
     }
 
     @Override

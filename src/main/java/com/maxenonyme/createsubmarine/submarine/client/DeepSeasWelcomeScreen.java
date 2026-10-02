@@ -65,13 +65,13 @@ public class DeepSeasWelcomeScreen extends Screen {
 
         addRenderableWidget(Button.builder(
                         Component.translatable("create_submarine.welcome.configure"),
-                        b -> { acknowledge(); openConfig(); })
+                        b -> { acknowledge(); openConfig(next()); })
                 .bounds(centerX - gap / 2 - buttonW, buttonsY, buttonW, 20)
                 .build());
 
         addRenderableWidget(Button.builder(
                         Component.translatable("create_submarine.welcome.dismiss"),
-                        b -> { acknowledge(); this.minecraft.setScreen(titleScreen); })
+                        b -> { acknowledge(); this.minecraft.setScreen(next()); })
                 .bounds(centerX + gap / 2, buttonsY, buttonW, 20)
                 .build());
     }
@@ -98,17 +98,21 @@ public class DeepSeasWelcomeScreen extends Screen {
         SubmarineClientState.setWelcomeScreenSeen(true);
     }
 
-    private void openConfig() {
+    private Screen next() {
+        return SubmarineClientState.hasSeenSafetyScreen() ? titleScreen : new DeepSeasSafetyScreen(titleScreen);
+    }
+
+    private void openConfig(Screen parent) {
         ModList.get().getModContainerById(CreateSubmarine.MOD_ID).ifPresentOrElse(
                 mc -> mc.getCustomExtension(IConfigScreenFactory.class).ifPresentOrElse(
-                        factory -> this.minecraft.setScreen(factory.createScreen(mc, titleScreen)),
-                        () -> this.minecraft.setScreen(titleScreen)),
-                () -> this.minecraft.setScreen(titleScreen));
+                        factory -> this.minecraft.setScreen(factory.createScreen(mc, parent)),
+                        () -> this.minecraft.setScreen(parent)),
+                () -> this.minecraft.setScreen(parent));
     }
 
     @Override
     public void onClose() {
         acknowledge();
-        this.minecraft.setScreen(titleScreen);
+        this.minecraft.setScreen(next());
     }
 }

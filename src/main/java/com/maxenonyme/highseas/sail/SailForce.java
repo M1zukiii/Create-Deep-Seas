@@ -1,6 +1,7 @@
 package com.maxenonyme.highseas.sail;
 
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
@@ -80,20 +81,23 @@ public final class SailForce {
         return keel;
     }
 
-    public static double power(Vec3 wind, double nx, double ny, double nz,
-                               double fx, double fy, double fz, int area) {
+    public static double pointOfSail(Vec3 wind, double nx, double ny, double nz,
+                                     double fx, double fy, double fz) {
+        double upwind = HighSeasConfig.sailUpwindEfficiency;
         double windMag = Math.sqrt(wind.x * wind.x + wind.y * wind.y + wind.z * wind.z);
         if (windMag < 1.0e-6) {
-            return area * HighSeasConfig.sailBaseThrust;
+            return upwind;
         }
         double wx = wind.x / windMag;
         double wy = wind.y / windMag;
         double wz = wind.z / windMag;
 
-        double trim = Math.max(HighSeasConfig.sailTrimFloor, Math.abs(nx * wx + ny * wy + nz * wz));
+        double trim = Math.max(0.5, Math.abs(nx * wx + ny * wy + nz * wz));
         double reach = Math.max(0.0, 0.5 + 0.5 * (wx * fx + wy * fy + wz * fz));
+        return upwind + (1.0 - upwind) * reach * trim;
+    }
 
-        return area * (HighSeasConfig.sailBaseThrust
-                + HighSeasConfig.sailWindGain * windMag * trim * reach);
+    public static double windFactor(Vec3 wind) {
+        return Mth.clamp(0.5 + 0.5 * wind.length(), 0.5, 1.3);
     }
 }

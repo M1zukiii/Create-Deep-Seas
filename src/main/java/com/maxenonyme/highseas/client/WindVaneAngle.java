@@ -80,6 +80,6 @@ public final class WindVaneAngle {
         if (local.x * local.x + local.z * local.z < CALM) {
             return Float.NaN;
         }
-        return (float) Math.atan2(local.x, local.z);
+        return (float) Math.atan2(-local.x, -local.z);
     }
 }

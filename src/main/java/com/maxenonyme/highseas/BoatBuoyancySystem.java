@@ -2,6 +2,7 @@ package com.maxenonyme.highseas;
 
 import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentDetector;
 import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
+import com.maxenonyme.createsubmarine.submarine.compartment.FloodSystem;
 import com.maxenonyme.createsubmarine.submarine.util.SablePhysicsHelper;
 import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
@@ -20,8 +21,6 @@ import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,24 +41,22 @@ public final class BoatBuoyancySystem {
     private static final double WET_REFERENCE = 8.0;
     private static final double SURFACE_REACH = 24.0;
 
-    private static final double FILL_PER_TICK = 1.0 / 300.0;
-    private static final double DRAIN_PER_TICK = 1.0 / 200.0;
-
-    private record Hull(double[] cells, int count, double surfaceY, double mass, boolean forwardIsX,
-            List<CompartmentDetector.Component> comps, Map<BlockPos, Double> fills) {
+    private record Hull(double[] cells, int count, double surfaceY, double mass, boolean forwardIsX, double length,
+            List<CompartmentDetector.Component> comps, int water) {
     }
 
     private static final Map<UUID, Hull> HULLS = new ConcurrentHashMap<>();
-    private static final Map<UUID, Map<BlockPos, Double>> WATER_IN = new ConcurrentHashMap<>();
+    private static final Map<UUID, Double> WET = new ConcurrentHashMap<>();
 
     public static void onServerTick(ServerTickEvent.Post event) {
         Map<UUID, SubLevel> boats = BoatManager.boatSubs();
         if (boats.isEmpty()) {
             HULLS.clear();
+            WET.clear();
             return;
         }
         HULLS.keySet().removeIf(id -> !boats.containsKey(id));
-        WATER_IN.keySet().removeIf(id -> !boats.containsKey(id));
+        WET.keySet().retainAll(HULLS.keySet());
         for (ServerLevel level : event.getServer().getAllLevels()) {
             SubLevelContainer container = SubLevelContainer.getContainer(level);
             if (container == null) {
@@ -73,6 +70,7 @@ public final class BoatBuoyancySystem {
                 Hull hull = scan(level, sub, id);
                 if (hull == null) {
                     HULLS.remove(id);
+                    WET.remove(id);
                 } else {
                     HULLS.put(id, hull);
                 }
@@ -89,90 +87,55 @@ public final class BoatBuoyancySystem {
         Vector3dc origin = pose.position();
         double surface = surfaceNear(level, origin.x(), origin.y(), origin.z());
 
-        Set<BlockPos> flooded = CompartmentTracker.floodedAnchors(id);
-        Map<BlockPos, Double> previous = WATER_IN.get(id);
-        Map<BlockPos, Double> levels = new HashMap<>();
+        double mass = Math.max(1.0, SablePhysicsHelper.readMass(sub));
+        Set<BlockPos> sunken = CompartmentTracker.sunkenAnchors(id);
+        int water = 31 * FloodSystem.waterVersion(id) + sunken.hashCode();
+        Hull prev = HULLS.get(id);
+        if (prev != null && prev.comps() == comps && prev.water() == water)
+            return new Hull(prev.cells(), prev.count(), surface, mass, prev.forwardIsX(), prev.length(), comps, water);
+
+        Set<BlockPos> flooded = FloodSystem.soakedCells(id);
         int count = 0;
+        int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
         for (CompartmentDetector.Component c : comps) {
-            if (!c.sealed()) {
+            if (!c.sealed() || sunken.contains(c.anchor()))
                 continue;
+            for (BlockPos cell : c.internal()) {
+                minX = Math.min(minX, cell.getX());
+                maxX = Math.max(maxX, cell.getX());
+                minZ = Math.min(minZ, cell.getZ());
+                maxZ = Math.max(maxZ, cell.getZ());
+                if (!flooded.contains(cell))
+                    count++;
             }
-            BlockPos anchor = c.anchor();
-            double filled = previous == null || anchor == null ? 0.0 : previous.getOrDefault(anchor, 0.0);
-            if (anchor != null && flooded.contains(anchor)) {
-                filled = surface != Double.NEGATIVE_INFINITY && topWorldY(pose, c) < surface
-                        ? 1.0
-                        : Math.min(1.0, filled + FILL_PER_TICK);
-            } else {
-                filled = Math.max(0.0, filled - DRAIN_PER_TICK);
-            }
-            if (anchor != null && filled > 0.0) {
-                levels.put(anchor, filled);
-            }
-            if (filled < 1.0)
-                count += c.internal().size();
-        }
-        if (levels.isEmpty()) {
-            WATER_IN.remove(id);
-        } else {
-            WATER_IN.put(id, levels);
         }
         if (count == 0) {
             return null;
         }
 
-        double mass = Math.max(1.0, SablePhysicsHelper.readMass(sub));
-        Hull prev = HULLS.get(id);
-        if (prev != null && prev.comps() == comps && prev.fills().equals(levels))
-            return new Hull(prev.cells(), prev.count(), surface, mass, prev.forwardIsX(), comps, levels);
-
-        double[] cells = new double[count * 4];
+        double[] cells = new double[count * 3];
         int k = 0;
         for (CompartmentDetector.Component c : comps) {
-            if (!c.sealed())
-                continue;
-            double lift = 1.0 - (c.anchor() == null ? 0.0 : levels.getOrDefault(c.anchor(), 0.0));
-            if (lift <= 0.0)
+            if (!c.sealed() || sunken.contains(c.anchor()))
                 continue;
             for (BlockPos cell : c.internal()) {
+                if (flooded.contains(cell))
+                    continue;
                 cells[k++] = cell.getX() + 0.5;
                 cells[k++] = cell.getY() + 0.5;
                 cells[k++] = cell.getZ() + 0.5;
-                cells[k++] = lift;
             }
         }
 
         boolean forwardIsX = true;
-        if (sub.getPlot() != null) {
+        if (maxX - minX != maxZ - minZ) {
+            forwardIsX = maxX - minX > maxZ - minZ;
+        } else if (sub.getPlot() != null) {
             BoundingBox3ic b = sub.getPlot().getBoundingBox();
             forwardIsX = (b.maxX() - b.minX()) >= (b.maxZ() - b.minZ());
         }
-        return new Hull(cells, k / 4, surface, mass, forwardIsX, comps, levels);
-    }
-
-    private static double topWorldY(Pose3dc pose, CompartmentDetector.Component c) {
-        int top = Integer.MIN_VALUE;
-        for (BlockPos p : c.internal()) {
-            if (p.getY() > top) {
-                top = p.getY();
-            }
-        }
-        if (top == Integer.MIN_VALUE) {
-            return Double.NEGATIVE_INFINITY;
-        }
-        Vector3d w = new Vector3d();
-        double best = Double.NEGATIVE_INFINITY;
-        for (BlockPos p : c.internal()) {
-            if (p.getY() != top) {
-                continue;
-            }
-            w.set(p.getX() + 0.5, p.getY() + 1.0, p.getZ() + 0.5);
-            pose.transformPosition(w);
-            if (w.y > best) {
-                best = w.y;
-            }
-        }
-        return best;
+        double length = Math.max(maxX - minX, maxZ - minZ) + 3;
+        return new Hull(cells, k / 3, surface, mass, forwardIsX, length, comps, water);
     }
 
     public static double surfaceNear(ServerLevel level, double x, double y, double z) {
@@ -193,6 +156,18 @@ public final class BoatBuoyancySystem {
     public static double surfaceFor(UUID id) {
         Hull hull = HULLS.get(id);
         return hull == null ? Double.NEGATIVE_INFINITY : hull.surfaceY();
+    }
+
+    public static double keelLength(UUID id) {
+        Hull hull = HULLS.get(id);
+        return hull == null ? 0.0 : hull.length();
+    }
+
+    public static double forwardDrag(UUID id, double speed) {
+        Double wet = WET.get(id);
+        if (wet == null)
+            return 0.0;
+        return (DRAG_FORWARD_LINEAR + DRAG_FORWARD_QUADRATIC * Math.abs(speed)) * speed * wet;
     }
 
     public static void onPhysicsTick(ForgeSablePrePhysicsTickEvent event) {
@@ -230,10 +205,10 @@ public final class BoatBuoyancySystem {
         Vector3d centre = new Vector3d();
         double volume = 0.0;
         double[] cells = hull.cells();
-        for (int i = 0, k = 0; i < hull.count(); i++, k += 4) {
+        for (int i = 0, k = 0; i < hull.count(); i++, k += 3) {
             double x = cells[k], y = cells[k + 1], z = cells[k + 2];
             pose.transformPosition(w.set(x, y, z));
-            double immersion = Mth.clamp(hull.surfaceY() - w.y + 0.5, 0.0, 1.0) * cells[k + 3];
+            double immersion = Mth.clamp(hull.surfaceY() - w.y + 0.5, 0.0, 1.0);
             if (immersion <= 0.0) {
                 continue;
             }
@@ -241,10 +216,12 @@ public final class BoatBuoyancySystem {
             centre.add(x * immersion, y * immersion, z * immersion);
         }
         if (volume < 1.0e-4) {
+            WET.remove(sub.getUniqueId());
             return;
         }
         centre.div(volume);
         double wet = Math.min(1.0, volume / WET_REFERENCE);
+        WET.put(sub.getUniqueId(), wet);
 
         Vector3d lift = new Vector3d(0.0, volume * LIFT_PER_CELL * g * dt, 0.0);
         inverse.transform(lift);
@@ -282,6 +259,6 @@ public final class BoatBuoyancySystem {
 
     public static void clearAll() {
         HULLS.clear();
-        WATER_IN.clear();
+        WET.clear();
     }
 }

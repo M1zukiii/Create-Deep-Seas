@@ -26,6 +26,7 @@ import net.minecraft.util.Mth;
 
 public class SubmarinePropellerBlockEntity extends BasePropellerBlockEntity {
     private static final int GROUP_SCAN_INTERVAL = 10;
+    private static final float GROUP_BOOST = 4f;
 
     private volatile BlockPos groupMaster;
     private volatile double groupThrust;
@@ -49,6 +50,15 @@ public class SubmarinePropellerBlockEntity extends BasePropellerBlockEntity {
             return SubmarineConfig.SUBMARINE_PROPELLER_POWER_MULTIPLIER.get() * AeroConfig.server().physics.andesitePropellerAirflow.get();
         }
         return 0.0;
+    }
+
+    @Override
+    public float calculateStressApplied() {
+        float impact = super.calculateStressApplied();
+        if (groupMaster == null)
+            return impact;
+        lastStressApplied = impact * GROUP_BOOST;
+        return lastStressApplied;
     }
 
     @Override
@@ -175,7 +185,12 @@ public class SubmarinePropellerBlockEntity extends BasePropellerBlockEntity {
         super.tick();
         if (level != null && --groupScan <= 0) {
             groupScan = GROUP_SCAN_INTERVAL;
-            groupMaster = findGroupMaster();
+            BlockPos master = findGroupMaster();
+            boolean grouped = master != null;
+            boolean wasGrouped = groupMaster != null;
+            groupMaster = master;
+            if (grouped != wasGrouped && !level.isClientSide && hasNetwork())
+                getOrCreateNetwork().updateStressFor(this, calculateStressApplied());
         }
         if (isGroupMaster()) {
             double total = 0;
@@ -183,7 +198,7 @@ public class SubmarinePropellerBlockEntity extends BasePropellerBlockEntity {
                 if (level.getBlockEntity(member) instanceof SubmarinePropellerBlockEntity prop)
                     total += prop.getConfigThrust() * prop.getDirectionIndependentSpeed();
             }
-            groupThrust = total;
+            groupThrust = total * GROUP_BOOST;
         }
     }
 

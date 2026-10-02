@@ -9,10 +9,6 @@ import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.companion.math.JOMLConversion;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Quaterniond;
@@ -30,7 +26,6 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
     private UUID parentId;
     private UUID seedId;
     private boolean isController;
-    private int worldLightLevel = 10;
     private int segmentLen = 3;
     private Vector3d groundAnchor = null;
     private double seedLocalY = -1.0;
@@ -164,32 +159,6 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
             }
         }
         return null;
-    }
-
-    public int getWorldLightLevel() {
-        return worldLightLevel;
-    }
-
-    public void setWorldLightLevel(int level) {
-        if (this.worldLightLevel != level) {
-            this.worldLightLevel = level;
-            this.setChanged();
-            if (this.level != null && !this.level.isClientSide) {
-                this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
-            }
-        }
-    }
-
-    @Override
-    public ClientboundBlockEntityDataPacket getUpdatePacket() {
-        return ClientboundBlockEntityDataPacket.create(this);
-    }
-
-    @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        CompoundTag tag = new CompoundTag();
-        tag.putInt("WorldLight", worldLightLevel);
-        return tag;
     }
 
     @Override
@@ -490,21 +459,6 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
 
 
 
-
-
-
-    @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
-        tag.putInt("WorldLight", worldLightLevel);
-    }
-
-    @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
-        if (tag.contains("WorldLight"))
-            worldLightLevel = tag.getInt("WorldLight");
-    }
 
     public Vector3d getGroundAnchor() {
         return groundAnchor;
