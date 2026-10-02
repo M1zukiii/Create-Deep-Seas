@@ -13,6 +13,7 @@ import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
 import java.util.List;
+import com.maxenonyme.createsubmarine.submarine.config.SubmarineClientState;
 
 public class DeepSeasWelcomeScreen extends Screen {
     private static final int PANEL_BG = 0xE6101A22;
@@ -35,7 +36,7 @@ public class DeepSeasWelcomeScreen extends Screen {
         if (!(event.getNewScreen() instanceof TitleScreen menu)) {
             return;
         }
-        if (!SubmarineConfig.SPEC.isLoaded() || com.maxenonyme.createsubmarine.submarine.config.SubmarineClientState.hasSeenWelcomeScreen()) {
+        if (!SubmarineConfig.CLIENT_SPEC.isLoaded() || SubmarineClientState.hasSeenWelcomeScreen()) {
             return;
         }
         if (SubmarineConfig.DISABLE_STARTUP_SCREENS.get()) {
@@ -64,13 +65,13 @@ public class DeepSeasWelcomeScreen extends Screen {
 
         addRenderableWidget(Button.builder(
                         Component.translatable("create_submarine.welcome.configure"),
-                        b -> { acknowledge(); openConfig(); })
+                        b -> { acknowledge(); openConfig(next()); })
                 .bounds(centerX - gap / 2 - buttonW, buttonsY, buttonW, 20)
                 .build());
 
         addRenderableWidget(Button.builder(
                         Component.translatable("create_submarine.welcome.dismiss"),
-                        b -> { acknowledge(); this.minecraft.setScreen(titleScreen); })
+                        b -> { acknowledge(); this.minecraft.setScreen(next()); })
                 .bounds(centerX + gap / 2, buttonsY, buttonW, 20)
                 .build());
     }
@@ -94,20 +95,24 @@ public class DeepSeasWelcomeScreen extends Screen {
     }
 
     private void acknowledge() {
-        com.maxenonyme.createsubmarine.submarine.config.SubmarineClientState.setWelcomeScreenSeen(true);
+        SubmarineClientState.setWelcomeScreenSeen(true);
     }
 
-    private void openConfig() {
+    private Screen next() {
+        return SubmarineClientState.hasSeenSafetyScreen() ? titleScreen : new DeepSeasSafetyScreen(titleScreen);
+    }
+
+    private void openConfig(Screen parent) {
         ModList.get().getModContainerById(CreateSubmarine.MOD_ID).ifPresentOrElse(
                 mc -> mc.getCustomExtension(IConfigScreenFactory.class).ifPresentOrElse(
-                        factory -> this.minecraft.setScreen(factory.createScreen(mc, titleScreen)),
-                        () -> this.minecraft.setScreen(titleScreen)),
-                () -> this.minecraft.setScreen(titleScreen));
+                        factory -> this.minecraft.setScreen(factory.createScreen(mc, parent)),
+                        () -> this.minecraft.setScreen(parent)),
+                () -> this.minecraft.setScreen(parent));
     }
 
     @Override
     public void onClose() {
         acknowledge();
-        this.minecraft.setScreen(titleScreen);
+        this.minecraft.setScreen(next());
     }
 }

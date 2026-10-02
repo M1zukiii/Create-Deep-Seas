@@ -27,6 +27,8 @@ public class CreateAbyss {
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(BuiltInRegistries.ITEM, MOD_ID);
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister
             .create(BuiltInRegistries.BLOCK_ENTITY_TYPE, MOD_ID);
+    public static final boolean DEV_ONLY = true;
+
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister
             .create(Registries.CREATIVE_MODE_TAB, MOD_ID);
 
@@ -41,8 +43,7 @@ public class CreateAbyss {
                     .build());
 
     public CreateAbyss(IEventBus modEventBus, ModContainer modContainer) {
-        // Abyss still in development: content only exists in the dev environment
-        if (net.neoforged.fml.loading.FMLEnvironment.production) {
+        if (!enabled()) {
             LOGGER.info("Create Abyss is in development, content disabled in production");
             return;
         }
@@ -60,6 +61,10 @@ public class CreateAbyss {
         if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) {
             CreateAbyssClient.init(modEventBus);
         }
+    }
+
+    public static boolean enabled() {
+        return !DEV_ONLY || !net.neoforged.fml.loading.FMLEnvironment.production;
     }
 
     private void registerPayloads(final net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent event) {

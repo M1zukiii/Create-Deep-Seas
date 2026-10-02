@@ -9,10 +9,6 @@ import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.companion.math.JOMLConversion;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Quaterniond;
@@ -20,15 +16,16 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import dev.ryanhcode.sable.api.physics.constraint.ConstraintJointAxis;
 import dev.ryanhcode.sable.api.physics.constraint.PhysicsConstraintHandle;
-import dev.ryanhcode.sable.api.physics.constraint.generic.GenericConstraintConfiguration;
+import dev.ryanhcode.sable.api.physics.constraint.GenericConstraintConfiguration;
 import java.util.EnumSet;
 import java.util.UUID;
+import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
+import net.minecraft.world.entity.player.Player;
 
 public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntitySubLevelActor {
     private UUID parentId;
     private UUID seedId;
     private boolean isController;
-    private int worldLightLevel = 10;
     private int segmentLen = 3;
     private Vector3d groundAnchor = null;
     private double seedLocalY = -1.0;
@@ -164,32 +161,6 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
         return null;
     }
 
-    public int getWorldLightLevel() {
-        return worldLightLevel;
-    }
-
-    public void setWorldLightLevel(int level) {
-        if (this.worldLightLevel != level) {
-            this.worldLightLevel = level;
-            this.setChanged();
-            if (this.level != null && !this.level.isClientSide) {
-                this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
-            }
-        }
-    }
-
-    @Override
-    public ClientboundBlockEntityDataPacket getUpdatePacket() {
-        return ClientboundBlockEntityDataPacket.create(this);
-    }
-
-    @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        CompoundTag tag = new CompoundTag();
-        tag.putInt("WorldLight", worldLightLevel);
-        return tag;
-    }
-
     @Override
     public void sable$physicsTick(ServerSubLevel subLevel, RigidBodyHandle handle, double timeStep) {
         if (subLevel.getPlot() == null) {
@@ -267,7 +238,7 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
                 if (parentSub != null && parentSub.getPlot() != null) {
                     BlockPos parentPlotAnchor = parentSub.getPlot().getCenterBlock();
                     BlockPos currentPlotAnchor = subLevel.getPlot().getCenterBlock();
-                    dev.ryanhcode.sable.companion.math.BoundingBox3ic parentBounds = parentSub.getPlot()
+                    BoundingBox3ic parentBounds = parentSub.getPlot()
                             .getBoundingBox();
                     int parentLenVal = parentBounds.maxY() - parentBounds.minY() + 1;
                     Vector3d localAnchorCurrent = new Vector3d(parentPlotAnchor.getX() + 0.5,
@@ -410,7 +381,7 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
         totalForce.add(waveSway, 0, 0);
 
         Vector3dc subPos = subLevel.logicalPose().position();
-        for (net.minecraft.world.entity.player.Player player : subLevel.getLevel().players()) {
+        for (Player player : subLevel.getLevel().players()) {
             double dx = subPos.x() - player.getX();
             double dy = subPos.y() - (player.getY() + player.getEyeHeight() * 0.5);
             double dz = subPos.z() - player.getZ();
@@ -488,21 +459,6 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
 
 
 
-
-
-
-    @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
-        tag.putInt("WorldLight", worldLightLevel);
-    }
-
-    @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
-        if (tag.contains("WorldLight"))
-            worldLightLevel = tag.getInt("WorldLight");
-    }
 
     public Vector3d getGroundAnchor() {
         return groundAnchor;

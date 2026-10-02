@@ -13,9 +13,11 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -36,6 +38,7 @@ public class UnderwaterMineBlockEntity extends BlockEntity {
     private static final int MAX_WATER_SCAN = 200;
 
     private static final Map<UUID, Set<BlockPos>> ACTIVE_MINES = new ConcurrentHashMap<>();
+    public static final Set<UnderwaterMineBlockEntity> LOADED_ON_CLIENT = Collections.newSetFromMap(new WeakHashMap<>());
     private boolean isExploded = false;
     public UUID ownerUUID;
     private UUID trackedSubId;
@@ -68,8 +71,22 @@ public class UnderwaterMineBlockEntity extends BlockEntity {
     }
 
     @Override
+    public void onLoad() {
+        super.onLoad();
+        if (level != null && level.isClientSide)
+            LOADED_ON_CLIENT.add(this);
+    }
+
+    @Override
+    public void onChunkUnloaded() {
+        super.onChunkUnloaded();
+        LOADED_ON_CLIENT.remove(this);
+    }
+
+    @Override
     public void setRemoved() {
         super.setRemoved();
+        LOADED_ON_CLIENT.remove(this);
         if (trackedSubId != null) {
             Set<BlockPos> mines = ACTIVE_MINES.get(trackedSubId);
             if (mines != null) {

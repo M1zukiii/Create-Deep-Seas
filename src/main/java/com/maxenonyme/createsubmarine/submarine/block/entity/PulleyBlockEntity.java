@@ -113,7 +113,7 @@ public class PulleyBlockEntity extends BlockEntity implements BlockEntitySubLeve
         peers.add(this);
 
         Vector3d localSnapPoint = new Vector3d(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5);
-        localSnapPoint.add(0.0, 0.25, 0.0);
+        localSnapPoint.add(0.0, state.getValue(PulleyBlock.INVERTED) ? -0.25 : 0.25, 0.0);
         net.minecraft.core.Direction wheelDir = facing.getAxis().isHorizontal() ? facing.getClockWise() : net.minecraft.core.Direction.EAST;
         localSnapPoint.add(wheelDir.getStepX() * 0.95, wheelDir.getStepY() * 0.95, wheelDir.getStepZ() * 0.95);
 
@@ -396,7 +396,8 @@ public class PulleyBlockEntity extends BlockEntity implements BlockEntitySubLeve
             if (partnerState.hasProperty(PulleyBlock.FACING)) {
                 net.minecraft.core.Direction partnerFacing = partnerState.getValue(PulleyBlock.FACING);
                 net.minecraft.core.Direction partnerWheelDir = partnerFacing.getAxis().isHorizontal() ? partnerFacing.getClockWise() : net.minecraft.core.Direction.EAST;
-                if (partnerWheelDir == wheelDir.getOpposite()) {
+                if (partnerWheelDir == wheelDir.getOpposite()
+                        && partnerState.getValue(PulleyBlock.INVERTED) == state.getValue(PulleyBlock.INVERTED)) {
                     return partner;
                 }
             }
@@ -456,7 +457,8 @@ public class PulleyBlockEntity extends BlockEntity implements BlockEntitySubLeve
         }
         net.minecraft.core.Direction facing = state.getValue(PulleyBlock.FACING);
         net.minecraft.core.Direction wheelDir = facing.getAxis().isHorizontal() ? facing.getClockWise() : net.minecraft.core.Direction.EAST;
-        return new Vector3d(be.getBlockPos().getX() + 0.5, be.getBlockPos().getY() + 0.75, be.getBlockPos().getZ() + 0.5)
+        double wheelY = state.getValue(PulleyBlock.INVERTED) ? 0.25 : 0.75;
+        return new Vector3d(be.getBlockPos().getX() + 0.5, be.getBlockPos().getY() + wheelY, be.getBlockPos().getZ() + 0.5)
             .add(wheelDir.getStepX() * 0.95, wheelDir.getStepY() * 0.95, wheelDir.getStepZ() * 0.95);
     }
 }

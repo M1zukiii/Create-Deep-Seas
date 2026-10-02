@@ -8,12 +8,19 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.FenceGateBlock;
+import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import java.util.*;
 
 public class CompartmentDetector {
     private static int maxBlocks() {
-        return com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.OXYGEN_MAX_FILL_BLOCKS.get();
+        var spec = com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.SERVER_SPEC;
+        return spec.isLoaded()
+                ? com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.OXYGEN_MAX_FILL_BLOCKS.get()
+                : 500_000;
     }
 
     public record Component(Set<BlockPos> internal, Set<BlockPos> hull, boolean sealed, BlockPos anchor) {
@@ -32,6 +39,7 @@ public class CompartmentDetector {
         final List<Component> partial = new ArrayList<>();
         int total = 0;
         final ChunkCache cache = new ChunkCache();
+        final Set<BlockPos> plugs;
         Set<BlockPos> activeInternal;
         Set<BlockPos> activeHull;
         boolean activeSealed;
@@ -40,9 +48,10 @@ public class CompartmentDetector {
         Deque<BlockPos> activeQueue;
         boolean done = false;
 
-        IncrementalScanState(SubLevel sub, LevelPlot plot, BoundingBox3ic b) {
+        IncrementalScanState(SubLevel sub, LevelPlot plot, BoundingBox3ic b, Set<BlockPos> plugs) {
             this.sub = sub;
             this.plot = plot;
+            this.plugs = plugs;
             this.minX = b.minX();
             this.maxX = b.maxX();
             this.minY = b.minY();
@@ -95,12 +104,16 @@ public class CompartmentDetector {
     }
 
     public static IncrementalScanState beginScan(SubLevelAccess subAccess) {
+        return beginScan(subAccess, Set.of());
+    }
+
+    public static IncrementalScanState beginScan(SubLevelAccess subAccess, Set<BlockPos> plugs) {
         if (!(subAccess instanceof SubLevel sub))
             return null;
         LevelPlot plot = sub.getPlot();
         if (plot == null)
             return null;
-        return new IncrementalScanState(sub, plot, plot.getBoundingBox());
+        return new IncrementalScanState(sub, plot, plot.getBoundingBox(), plugs);
     }
 
     public static boolean stepScan(IncrementalScanState st, int budget) {
@@ -124,7 +137,7 @@ public class CompartmentDetector {
                 st.total++;
                 BlockState startState = getStateInPlot(st.plot, start, st.cache);
                 if (startState != null) {
-                    if (isPermeable(startState)) {
+                    if (isPermeable(startState) && !st.plugs.contains(start)) {
                         st.startBfs(start);
                     } else {
                         st.solidBlocks.add(start);
@@ -164,9 +177,10 @@ public class CompartmentDetector {
             BlockState nextState = getStateInPlot(st.plot, next, st.cache);
             if (nextState == null) {
                 st.chunksMissing = true;
+                st.activeSealed = false;
                 continue;
             }
-            if (isPermeable(nextState)) {
+            if (isPermeable(nextState) && !st.plugs.contains(next)) {
                 if (st.visited.contains(next))
                     continue;
                 st.visited.add(next);
@@ -208,9 +222,12 @@ public class CompartmentDetector {
         LevelChunk lastChunk = null;
     }
 
-    private static boolean isPermeable(BlockState state) {
+    public static boolean isPermeable(BlockState state) {
         if (state.isAir())
             return true;
+        if (state.getBlock() instanceof DoorBlock || state.getBlock() instanceof TrapDoorBlock
+                || state.getBlock() instanceof FenceGateBlock)
+            return state.getValue(BlockStateProperties.OPEN);
         return state.getCollisionShape(
                 net.minecraft.world.level.EmptyBlockGetter.INSTANCE,
                 net.minecraft.core.BlockPos.ZERO).isEmpty();

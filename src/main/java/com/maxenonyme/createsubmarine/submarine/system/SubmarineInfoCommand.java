@@ -1,6 +1,7 @@
 package com.maxenonyme.createsubmarine.submarine.system;
 
 import com.maxenonyme.createsubmarine.CreateSubmarine;
+import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentDetector;
 import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
 import com.mojang.brigadier.context.CommandContext;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
@@ -57,11 +58,7 @@ public final class SubmarineInfoCommand {
             BoundingBox3ic b = sub.getPlot().getBoundingBox();
             if (b == null) continue;
             Vector3d local = new Vector3d(ppos);
-            try {
-                sub.logicalPose().transformPositionInverse(local);
-            } catch (Throwable t) {
-                continue;
-            }
+            sub.logicalPose().transformPositionInverse(local);
             if (local.x >= b.minX() - 2 && local.x <= b.maxX() + 2
                     && local.y >= b.minY() - 2 && local.y <= b.maxY() + 2
                     && local.z >= b.minZ() - 2 && local.z <= b.maxZ() + 2) {
@@ -101,7 +98,8 @@ public final class SubmarineInfoCommand {
         boolean breached = SubmarinePressureSystem.isBreached(id);
         int cracks = SubmarinePressureSystem.getCrackCount(id);
         int depth = SubmarinePressureSystem.getCachedDepth(id);
-        boolean underPressure = hermetic && depth > 0 && cracks > 0;
+        boolean underPressure = hermetic && depth > 0;
+        int hullLimit = subLevel != null ? SubmarinePressureSystem.getWeakestHullDepth(id, subLevel) : -1;
 
         final int fc = controllers, fd = diffusers, ff = floaters;
         final boolean fScanned = scanned;
@@ -119,11 +117,16 @@ public final class SubmarineInfoCommand {
         source.sendSuccess(() -> line("Cracked blocks", String.valueOf(cracks)), false);
         source.sendSuccess(() -> line("Water depth", String.valueOf(depth)), false);
         source.sendSuccess(() -> bool("Under pressure", underPressure), false);
+        if (hullLimit > 0 && hullLimit < Integer.MAX_VALUE)
+            source.sendSuccess(() -> line("Hull depth limit", String.valueOf(hullLimit)), false);
         return 1;
     }
 
     private static int findHoles(CommandContext<CommandSourceStack> ctx) {
-        CommandSourceStack source = ctx.getSource();
+        return findHoles(ctx.getSource());
+    }
+
+    public static int findHoles(CommandSourceStack source) {
         ServerPlayer player = source.getPlayer();
         if (player == null) {
             source.sendFailure(Component.literal("Player only."));
@@ -143,11 +146,7 @@ public final class SubmarineInfoCommand {
             BoundingBox3ic b = sub.getPlot().getBoundingBox();
             if (b == null) continue;
             Vector3d local = new Vector3d(ppos);
-            try {
-                sub.logicalPose().transformPositionInverse(local);
-            } catch (Throwable t) {
-                continue;
-            }
+            sub.logicalPose().transformPositionInverse(local);
             if (local.x >= b.minX() - 2 && local.x <= b.maxX() + 2
                     && local.y >= b.minY() - 2 && local.y <= b.maxY() + 2
                     && local.z >= b.minZ() - 2 && local.z <= b.maxZ() + 2) {
@@ -169,12 +168,7 @@ public final class SubmarineInfoCommand {
         }
 
         Vector3d localPlayerVec = new Vector3d(ppos);
-        try {
-            found.logicalPose().transformPositionInverse(localPlayerVec);
-        } catch (Throwable t) {
-            source.sendFailure(Component.translatable("create_submarine.command.findhole.failed_local_pos"));
-            return 0;
-        }
+        found.logicalPose().transformPositionInverse(localPlayerVec);
         BlockPos playerLocalPos = BlockPos.containing(localPlayerVec.x, localPlayerVec.y, localPlayerVec.z);
 
         int minX = b.minX(), maxX = b.maxX();
@@ -188,23 +182,70 @@ public final class SubmarineInfoCommand {
             return 0;
         }
 
+        Leaks leaks = findLeaks(subLevel, b, playerLocalPos);
+        if (leaks.status() == LeakStatus.TOO_LARGE) {
+            source.sendFailure(Component.translatable("create_submarine.command.findhole.too_large"));
+            return 0;
+        }
+        if (leaks.status() == LeakStatus.OUTSIDE) {
+            source.sendFailure(Component.translatable("create_submarine.command.findhole.outside"));
+            return 0;
+        }
+        if (leaks.status() == LeakStatus.SEALED) {
+            source.sendSuccess(() -> Component.translatable("create_submarine.command.findhole.sealed").withStyle(ChatFormatting.GREEN), false);
+            return 1;
+        }
+        List<BlockPos> cutBlocks = leaks.blocks();
+
+        int cutCount = cutBlocks.size();
+        source.sendSuccess(() -> Component.translatable("create_submarine.command.findhole.detected_count", cutCount).withStyle(ChatFormatting.RED), false);
+        int displayLimit = Math.min(cutCount, 10);
+        for (int i = 0; i < displayLimit; i++) {
+            BlockPos localPos = cutBlocks.get(i);
+            Vector3d worldVec = new Vector3d(localPos.getX() + 0.5, localPos.getY() + 0.5, localPos.getZ() + 0.5);
+            found.logicalPose().transformPosition(worldVec);
+            BlockPos worldPos = BlockPos.containing(worldVec.x, worldVec.y, worldVec.z);
+            source.sendSuccess(() -> Component.translatable("create_submarine.command.findhole.entry",
+                    localPos.getX(), localPos.getY(), localPos.getZ(),
+                    worldPos.getX(), worldPos.getY(), worldPos.getZ()).withStyle(ChatFormatting.YELLOW), false);
+        }
+        if (cutCount > 10) {
+            int remaining = cutCount - 10;
+            source.sendSuccess(() -> Component.translatable("create_submarine.command.findhole.more", remaining).withStyle(ChatFormatting.GRAY), false);
+        }
+        return 1;
+    }
+
+    public enum LeakStatus {
+        SEALED, LEAKING, OUTSIDE, TOO_LARGE
+    }
+
+    public record Leaks(LeakStatus status, List<BlockPos> blocks) {
+    }
+
+    public static Leaks findLeaks(Level subLevel, BoundingBox3ic b, BlockPos start) {
+        int minX = b.minX(), maxX = b.maxX();
+        int minY = b.minY(), maxY = b.maxY();
+        int minZ = b.minZ(), maxZ = b.maxZ();
+        if (start.getX() < minX || start.getX() > maxX || start.getY() < minY || start.getY() > maxY
+                || start.getZ() < minZ || start.getZ() > maxZ)
+            return new Leaks(LeakStatus.OUTSIDE, List.of());
+
         int dx = maxX - minX + 1;
         int dy = maxY - minY + 1;
         int dz = maxZ - minZ + 1;
         int totalVolume = dx * dy * dz;
 
-        if (totalVolume <= 0 || totalVolume > 500000) {
-            source.sendFailure(Component.translatable("create_submarine.command.findhole.too_large"));
-            return 0;
-        }
+        if (totalVolume <= 0 || totalVolume > 500000)
+            return new Leaks(LeakStatus.TOO_LARGE, List.of());
 
         boolean[] visited = new boolean[totalVolume];
         int[] bfsQueue = new int[totalVolume];
         int qHead = 0, qTail = 0;
 
-        int playerIdx = (playerLocalPos.getX() - minX) * (dy * dz) + (playerLocalPos.getY() - minY) * dz + (playerLocalPos.getZ() - minZ);
-        bfsQueue[qTail++] = playerIdx;
-        visited[playerIdx] = true;
+        int startIdx = (start.getX() - minX) * (dy * dz) + (start.getY() - minY) * dz + (start.getZ() - minZ);
+        bfsQueue[qTail++] = startIdx;
+        visited[startIdx] = true;
 
         int[] reachableList = new int[totalVolume];
         int reachableCount = 0;
@@ -246,10 +287,8 @@ public final class SubmarineInfoCommand {
             }
         }
 
-        if (!reachedBoundary) {
-            source.sendSuccess(() -> Component.translatable("create_submarine.command.findhole.sealed").withStyle(ChatFormatting.GREEN), false);
-            return 1;
-        }
+        if (!reachedBoundary)
+            return new Leaks(LeakStatus.SEALED, List.of());
 
         int[] globalToCompressed = new int[totalVolume];
         Arrays.fill(globalToCompressed, -1);
@@ -281,12 +320,12 @@ public final class SubmarineInfoCommand {
 
         int edgeCount = 0;
         int T = 2 * reachableCount;
-        int S = 2 * globalToCompressed[playerIdx] + 1;
+        int S = 2 * globalToCompressed[startIdx] + 1;
 
         for (int i = 0; i < reachableCount; i++) {
             int uIn = 2 * i;
             int uOut = 2 * i + 1;
-            int c = (i == globalToCompressed[playerIdx] || isBoundary[i]) ? 1000000 : 1;
+            int c = (i == globalToCompressed[startIdx] || isBoundary[i]) ? 1000000 : 1;
 
             to[edgeCount] = uOut;
             cap[edgeCount] = c;
@@ -396,10 +435,8 @@ public final class SubmarineInfoCommand {
             }
         }
 
-        if (maxFlow >= 500000) {
-            source.sendFailure(Component.translatable("create_submarine.command.findhole.outside"));
-            return 0;
-        }
+        if (maxFlow >= 500000)
+            return new Leaks(LeakStatus.OUTSIDE, List.of());
 
         boolean[] residualReachable = new boolean[vertexCount + 1];
         int[] residualQueue = new int[vertexCount + 1];
@@ -432,35 +469,14 @@ public final class SubmarineInfoCommand {
             }
         }
 
-        if (cutBlocks.isEmpty()) {
-            source.sendSuccess(() -> Component.translatable("create_submarine.command.findhole.sealed").withStyle(ChatFormatting.GREEN), false);
-            return 1;
-        }
+        if (cutBlocks.isEmpty())
+            return new Leaks(LeakStatus.SEALED, List.of());
+        return new Leaks(LeakStatus.LEAKING, cutBlocks);
 
-        int cutCount = cutBlocks.size();
-        source.sendSuccess(() -> Component.translatable("create_submarine.command.findhole.detected_count", cutCount).withStyle(ChatFormatting.RED), false);
-        int displayLimit = Math.min(cutCount, 10);
-        for (int i = 0; i < displayLimit; i++) {
-            BlockPos localPos = cutBlocks.get(i);
-            Vector3d worldVec = new Vector3d(localPos.getX() + 0.5, localPos.getY() + 0.5, localPos.getZ() + 0.5);
-            found.logicalPose().transformPosition(worldVec);
-            BlockPos worldPos = BlockPos.containing(worldVec.x, worldVec.y, worldVec.z);
-            source.sendSuccess(() -> Component.translatable("create_submarine.command.findhole.entry",
-                    localPos.getX(), localPos.getY(), localPos.getZ(),
-                    worldPos.getX(), worldPos.getY(), worldPos.getZ()).withStyle(ChatFormatting.YELLOW), false);
-        }
-        if (cutCount > 10) {
-            int remaining = cutCount - 10;
-            source.sendSuccess(() -> Component.translatable("create_submarine.command.findhole.more", remaining).withStyle(ChatFormatting.GRAY), false);
-        }
-        return 1;
     }
 
     private static boolean isBlockPermeable(BlockState state) {
-        if (state.isAir()) {
-            return true;
-        }
-        return state.getCollisionShape(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty();
+        return CompartmentDetector.isPermeable(state);
     }
 
     private static Component line(String label, String value) {
