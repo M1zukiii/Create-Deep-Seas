@@ -82,6 +82,11 @@ public class BallastTankBlockEntity extends BlockEntity
     private static final Map<UUID, Map<BlockPos, BallastTankBlockEntity>> BY_SUB = new ConcurrentHashMap<>();
     private UUID registeredSub;
 
+    public static int tankCount(UUID subId) {
+        Map<BlockPos, BallastTankBlockEntity> tanks = BY_SUB.get(subId);
+        return tanks == null ? 0 : tanks.size();
+    }
+
     public static double fillRatio(UUID subId) {
         Map<BlockPos, BallastTankBlockEntity> tanks = BY_SUB.get(subId);
         if (tanks == null || tanks.isEmpty())

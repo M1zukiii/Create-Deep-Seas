@@ -70,6 +70,7 @@ public class CommandSubBlockEntity extends BlockEntity {
     private static final double BRAKING_MARGIN = 0.6;
     private static final double TRIM_RANGE = 2;
     private static final double TRIM_ACCEL = 1.5;
+    private static final double TANKS_PER_PUMP = 10;
     private static final int CLEARANCE = 4;
     private static final double LOOKAHEAD_SECONDS = 5;
     private static final int LOOKAHEAD_MIN = 6;
@@ -295,6 +296,13 @@ public class CommandSubBlockEntity extends BlockEntity {
 
     public int pumpCommand() {
         return command;
+    }
+
+    public float pumpBoost() {
+        if (registeredSub == null || pumps.isEmpty())
+            return 1f;
+        double needed = BallastTankBlockEntity.tankCount(registeredSub) / (pumps.size() * TANKS_PER_PUMP);
+        return Math.max(1f, Math.round(needed * 4) / 4f);
     }
 
     public float pumpRate() {
