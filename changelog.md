@@ -1,9 +1,14 @@
 # Changelog
 
-## [Unreleased]
+## [3.4.0]
 
 ### Changes
 - **Pump Controllers Keep Up With Big Ballasts:** A Pump Controller moved water like a plain Create pump, about 2.5 buckets a second at 256 RPM, whatever the size of the ship. On a big submarine (120 Ballast Tanks for 3 or 4 pumps) filling or draining the ballast took minutes, so the Onboard Computer seemed stuck. When an Onboard Computer runs them, Pump Controllers now push harder on big ballasts: each one is sized for about 10 tanks, and past that its pressure is multiplied by tanks / (pumps × 10), so any submarine swings its ballast in roughly the same time as a small one (around 16 seconds from half to empty at 256 RPM). Only the water flow is boosted: the cog still turns at the shaft's speed and the stress cost does not change. Small submarines are not affected.
+- **Credits in the Mods Screen:** The page of Create Deep Seas, Create Abyss and Create High Seas in the Mods screen now lists the developers, contributors, artists, music authors and alpha testers.
+
+### Bug Fixes
+- **Crash When Loading Terrain on Older GPUs (#89):** The billowing sail is drawn with a tessellation shader, which needs OpenGL 4.0. On GPUs that only offer OpenGL 3.3 (older Intel integrated graphics, some Mesa drivers), Veil skips that shader, but its render layer was still added to the terrain layers, so the game crashed with a missing shader the moment the world started rendering. When tessellation is not supported, the sail layer is now left out and sails are drawn flat, the same way they are under an Iris shader pack.
+- **Client Freezing on Join With Large Ships, FPS Drop Near Sealed Hulls (#91, #86):** The set of cells used by the block-by-block water culling was copied with `Set.copyOf`, which probes on the raw hash code. Block positions of a large, compact hull give runs of consecutive or equal hash codes, so the copy packed them into one huge cluster and became quadratic: on a big hull a single copy took from seconds to minutes and locked the render thread while joining. Every lookup in that set was also about a thousand times slower than it should be, and with Sodium the chunk builder looks up every block near a sealed ship, so rebuilding the chunks around an oxygenated submarine or a boat with a dry hold dragged the frame rate down (flooding the hull emptied the set, which is why breaking a wall made the lag go away). It is now a plain `HashSet`, like the other culling sets, and so are the progressive flooding cell sets.
 
 ### Removed
 - **Water Wheel Propulsion:** Large Water Wheels on a ship no longer push it through the water or spin from the ship's speed. Other mods already do this, and the two behaviours stacked on top of each other. Water wheels on ships now work like plain Create water wheels.

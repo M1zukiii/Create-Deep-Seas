@@ -2,6 +2,8 @@ package com.maxenonyme.highseas.client;
 
 import com.maxenonyme.highseas.mixin.ChunkRenderTypeSetAccessor;
 import com.maxenonyme.highseas.block.BoatSailBlock;
+import com.mojang.blaze3d.systems.RenderSystem;
+import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.event.VeilRenderLevelStageEvent;
 import foundry.veil.platform.VeilEventPlatform;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
@@ -24,10 +26,30 @@ public final class SailRenderClient {
     private SailRenderClient() {
     }
 
+    private static volatile Boolean billows;
+
+    public static boolean billows() {
+        Boolean known = billows;
+        if (known == null) {
+            if (!RenderSystem.isOnRenderThread())
+                return false;
+            known = VeilRenderSystem.tessellationSupported();
+            if (!known)
+                CreateHighSeas.LOGGER.warn("This GPU does not support OpenGL tessellation, sails will be drawn flat");
+            billows = known;
+        }
+        return known;
+    }
+
     public static void init(IEventBus modEventBus) {
-        VeilEventPlatform.INSTANCE.onVeilRegisterBlockLayers(registry -> registry.registerBlockLayer(SailRenderTypes.sail()));
-        VeilEventPlatform.INSTANCE.onVeilRegisterFixedBuffers(registry ->
-                registry.registerFixedBuffer(VeilRenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES, SailRenderTypes.sail()));
+        VeilEventPlatform.INSTANCE.onVeilRegisterBlockLayers(registry -> {
+            if (billows())
+                registry.registerBlockLayer(SailRenderTypes.sail());
+        });
+        VeilEventPlatform.INSTANCE.onVeilRegisterFixedBuffers(registry -> {
+            if (billows())
+                registry.registerFixedBuffer(VeilRenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES, SailRenderTypes.sail());
+        });
         modEventBus.addListener(SailRenderClient::onClientSetup);
         modEventBus.addListener(SailRenderClient::onModelBaking);
     }
@@ -44,7 +66,8 @@ public final class SailRenderClient {
 
     private static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
-            ChunkRenderTypeSet set = ChunkRenderTypeSet.of(SailRenderTypes.sail());
+            ChunkRenderTypeSet set = billows() ? ChunkRenderTypeSet.of(SailRenderTypes.sail())
+                    : ChunkRenderTypeSet.of(RenderType.cutout());
             for (Block block : BuiltInRegistries.BLOCK) {
                 if (block instanceof BoatSailBlock) {
                     ItemBlockRenderTypes.setRenderLayer(block, set);

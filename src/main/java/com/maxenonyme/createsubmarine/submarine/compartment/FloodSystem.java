@@ -24,6 +24,7 @@ import org.joml.Vector3d;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -225,9 +226,9 @@ public final class FloodSystem {
         if (weight > 0)
             centre.div(weight);
         flood.centre = centre;
-        flood.soaked = Set.copyOf(soaked);
-        flood.awash = Set.copyOf(awash);
-        flood.water = Set.copyOf(water);
+        flood.soaked = Collections.unmodifiableSet(soaked);
+        flood.awash = Collections.unmodifiableSet(awash);
+        flood.water = Collections.unmodifiableSet(water);
         flood.weight = weight;
         flood.version++;
     }

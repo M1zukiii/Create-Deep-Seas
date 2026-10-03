@@ -521,7 +521,7 @@ public class CompartmentTracker {
         if (blocks == null || blocks.isEmpty()) {
             OCCLUSION_UNION.remove(id);
         } else {
-            OCCLUSION_UNION.put(id, Set.copyOf(blocks));
+            OCCLUSION_UNION.put(id, Collections.unmodifiableSet(new HashSet<>(blocks)));
         }
     }
 
