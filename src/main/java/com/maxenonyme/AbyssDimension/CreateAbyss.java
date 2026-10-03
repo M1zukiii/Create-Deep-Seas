@@ -5,9 +5,13 @@ import com.maxenonyme.AbyssDimension.entities.EntityRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.JukeboxSong;
+import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
@@ -29,6 +33,10 @@ public class CreateAbyss {
             .create(BuiltInRegistries.BLOCK_ENTITY_TYPE, MOD_ID);
     public static final boolean DEV_ONLY = true;
 
+    public static final Supplier<Item> MUSIC_DISC_HIDDEN_BETWEEN_FLUENT_WATERS = musicDisc("hidden_between_fluent_waters");
+    public static final Supplier<Item> MUSIC_DISC_SEAFOAM = musicDisc("seafoam");
+    public static final Supplier<Item> MUSIC_DISC_SNELLS_WINDOW = musicDisc("snells_window");
+
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister
             .create(Registries.CREATIVE_MODE_TAB, MOD_ID);
 
@@ -39,6 +47,9 @@ public class CreateAbyss {
                     .displayItems((parameters, output) -> {
                         output.accept(EntityRegistry.AMPHISTIUM_SPAWN_EGG.get());
                         output.accept(EntityRegistry.COOKIECUTTER_SHARK_SPAWN_EGG.get());
+                        output.accept(MUSIC_DISC_HIDDEN_BETWEEN_FLUENT_WATERS.get());
+                        output.accept(MUSIC_DISC_SEAFOAM.get());
+                        output.accept(MUSIC_DISC_SNELLS_WINDOW.get());
                     })
                     .build());
 
@@ -61,6 +72,13 @@ public class CreateAbyss {
         if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) {
             CreateAbyssClient.init(modEventBus);
         }
+    }
+
+    private static Supplier<Item> musicDisc(String name) {
+        ResourceKey<JukeboxSong> song = ResourceKey.create(Registries.JUKEBOX_SONG,
+                ResourceLocation.fromNamespaceAndPath(MOD_ID, name));
+        return ITEMS.register("music_disc_" + name,
+                () -> new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE).jukeboxPlayable(song)));
     }
 
     public static boolean enabled() {
