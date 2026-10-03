@@ -32,6 +32,8 @@ public class PumpControllerBlockEntity extends PumpBlockEntity {
     private BlockPos computer;
     private int command = FILL;
     private float rate = 1f;
+    private float boost = 1f;
+    private boolean distributing;
     private Direction ballastSide;
     private int scanCooldown;
 
@@ -47,6 +49,7 @@ public class PumpControllerBlockEntity extends PumpBlockEntity {
 
         int wanted = FILL;
         float wantedRate = 1f;
+        float wantedBoost = 1f;
         BlockPos found = null;
         SubLevelAccess sub = SableCompanion.INSTANCE.getContaining(level, worldPosition);
         CommandSubBlockEntity brain = sub == null ? null : CommandSubBlockEntity.onSub(sub.getUniqueId());
@@ -55,6 +58,7 @@ public class PumpControllerBlockEntity extends PumpBlockEntity {
             brain.reportPump(worldPosition, level.getGameTime());
             wanted = brain.pumpCommand();
             wantedRate = brain.pumpRate();
+            wantedBoost = brain.pumpBoost();
         }
 
         Direction side = ballastSide;
@@ -63,9 +67,11 @@ public class PumpControllerBlockEntity extends PumpBlockEntity {
             side = findBallastSide();
         }
 
-        if (wanted != command || wantedRate != rate || !Objects.equals(found, computer) || side != ballastSide) {
+        if (wanted != command || wantedRate != rate || wantedBoost != boost || !Objects.equals(found, computer)
+                || side != ballastSide) {
             command = wanted;
             rate = wantedRate;
+            boost = wantedBoost;
             computer = found;
             ballastSide = side;
             updatePressureChange();
@@ -132,7 +138,17 @@ public class PumpControllerBlockEntity extends PumpBlockEntity {
         float speed = super.getSpeed();
         if (computer == null)
             return speed;
-        return command == HOLD ? 0 : speed * rate;
+        return command == HOLD ? 0 : speed * rate * (distributing ? boost : 1f);
+    }
+
+    @Override
+    protected void distributePressureTo(Direction side) {
+        distributing = true;
+        try {
+            super.distributePressureTo(side);
+        } finally {
+            distributing = false;
+        }
     }
 
     @Override

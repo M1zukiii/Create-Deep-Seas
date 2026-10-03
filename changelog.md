@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Changes
+- **Pump Controllers Keep Up With Big Ballasts:** A Pump Controller moved water like a plain Create pump, about 2.5 buckets a second at 256 RPM, whatever the size of the ship. On a big submarine (120 Ballast Tanks for 3 or 4 pumps) filling or draining the ballast took minutes, so the Onboard Computer seemed stuck. When an Onboard Computer runs them, Pump Controllers now push harder on big ballasts: each one is sized for about 10 tanks, and past that its pressure is multiplied by tanks / (pumps × 10), so any submarine swings its ballast in roughly the same time as a small one (around 16 seconds from half to empty at 256 RPM). Only the water flow is boosted: the cog still turns at the shaft's speed and the stress cost does not change. Small submarines are not affected.
+
 ## [3.3.0]
 
 ### Bug Fixes
